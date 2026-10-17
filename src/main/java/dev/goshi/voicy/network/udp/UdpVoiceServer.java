@@ -15,10 +15,6 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * Lightweight UDP fallback bound alongside the Minecraft server port when permitted.
- * Frame layout: [16-byte UUID][8-byte sequence][4-byte radius][N-byte opus].
- */
 public final class UdpVoiceServer implements AutoCloseable {
 
 	private static final int MAX_PACKET = 2048;

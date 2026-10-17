@@ -12,9 +12,6 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.network.ServerPlayerEntity;
 
-/**
- * Registers server-side packet handlers and connection lifecycle hooks.
- */
 public final class ServerNetworkHandler {
 
 	private final VoiceRouter router;

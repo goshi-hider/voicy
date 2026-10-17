@@ -8,9 +8,6 @@ import java.util.PriorityQueue;
 import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
 
-/**
- * Per-speaker jitter buffer handling reordering and late packet drop.
- */
 public final class JitterBuffer {
 
 	private final int maxLatencyMs;
@@ -20,11 +17,7 @@ public final class JitterBuffer {
 			Comparator.comparingLong(BufferedFrame::sequence)
 	);
 	private long nextExpectedSequence = -1;
-	// Timestamp of the last time nextExpectedSequence actually moved forward (frame
-	// delivered or gap skipped). Gaps are timed from here, not from whenever pollReady()
-	// happens to next be called - otherwise time spent waiting between polls (e.g. the
-	// ~50ms between client ticks) never counts, and a genuinely late/missing packet can
-	// wait far longer than maxLatencyMs before being skipped, stalling playback.
+	
 	private long lastAdvanceNanos = -1L;
 
 	public JitterBuffer(int maxLatencyMs, int frameDurationMs) {
@@ -75,8 +68,7 @@ public final class JitterBuffer {
 				}
 				long gapWaitNanos = Math.max(1L, frameDurationMs) * 1_000_000L;
 				if (System.nanoTime() - lastAdvanceNanos >= gapWaitNanos) {
-					// Emit a missing-frame marker so playback advances decoder state with PLC
-					// before decoding the next real Opus packet.
+					
 					long lostSequence = nextExpectedSequence++;
 					lastAdvanceNanos = System.nanoTime();
 					VoiceFramePayload nextFrame = head.frame();

@@ -7,9 +7,6 @@ import dev.goshi.voicy.network.payload.VoiceFramePayload;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 
-/**
- * Client-side payload receivers.
- */
 public final class ClientNetworkHandler {
 
 	private final ClientVoiceManager voiceManager;

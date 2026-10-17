@@ -13,7 +13,6 @@ import dev.goshi.voicy.audio.spatial.OpenALAudioEngine;
 import dev.goshi.voicy.audio.spatial.SpatialAudioSource;
 import dev.goshi.voicy.config.VoicyConfig;
 import net.voicechat.api.VoiceChatAPI;
-import net.voicechat.api.VoiceChatAPI;
 import dev.goshi.voicy.network.payload.HandshakePayload;
 import dev.goshi.voicy.network.payload.SpeakerSyncPayload;
 import dev.goshi.voicy.network.payload.VoiceFramePayload;
@@ -33,9 +32,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * Client-side orchestrator: capture → encode → transmit, receive → jitter → decode → spatial playback.
- */
 public final class ClientVoiceManager implements AutoCloseable {
 
 	private final VoicyConfig config;
@@ -52,18 +48,13 @@ public final class ClientVoiceManager implements AutoCloseable {
 	private final Set<UUID> talkingSources = ConcurrentHashMap.newKeySet();
 	private static final long TALKING_TIMEOUT_NANOS = 400_000_000L;
 
-	// Bounds for receive-side packet-loss concealment: only conceal while a speaker has
-	// been sending recently (mid-utterance network jitter) and only for a few frames in a
-	// row, so a speaker who has actually stopped talking goes quiet instead of hissing
-	// forever on synthesized concealment audio.
-
 	private final AtomicBoolean selfMuted = new AtomicBoolean(false);
 	private final AtomicBoolean selfDeafened = new AtomicBoolean(false);
 	private final AtomicBoolean pttHeld = new AtomicBoolean(false);
 	private final AtomicLong sequence = new AtomicLong();
 
 	private final VoiceActivityGate voiceActivityGate;
-	private static final int FADE_SAMPLES = 240; // ~5ms at 48kHz
+	private static final int FADE_SAMPLES = 240;
 	private volatile boolean sendingActive = false;
 
 	private Thread captureThread;
@@ -72,7 +63,12 @@ public final class ClientVoiceManager implements AutoCloseable {
 	private volatile float inputLevel;
 	private final AtomicLong receivedSpeakerFrames = new AtomicLong();
 	private final AtomicLong queuedSpeakerFrames = new AtomicLong();
+	private volatile float recentPlaybackPeak = 0f;
+	private volatile long lastPlaybackNanos = Long.MIN_VALUE;
+	private static final long ECHO_GUARD_NANOS = 300_000_000L;
+	private static final float ECHO_GUARD_MARGIN = 1.8f;
 	private final AtomicBoolean loggedSpeakerPcm = new AtomicBoolean();
+	private final Set<UUID> unsyncedSpeakerWarned = ConcurrentHashMap.newKeySet();
 
 	public ClientVoiceManager(VoicyConfig config) throws Exception {
 		this.config = config;
@@ -88,6 +84,7 @@ public final class ClientVoiceManager implements AutoCloseable {
 		if (handshake.transportMode() == HandshakePayload.TransportMode.UDP_FALLBACK) {
 			if (udpClient == null) {
 				udpClient = new UdpVoiceClient();
+				udpClient.setConsumer(frame -> MinecraftClient.getInstance().execute(() -> onVoiceFrame(frame)));
 			}
 			udpClient.startSession(MinecraftClient.getInstance().getSession().getUsername(), handshake.udpHost(), handshake.udpPort(), handshake.sessionSecret());
 		} else if (udpClient != null) {
@@ -135,15 +132,12 @@ public final class ClientVoiceManager implements AutoCloseable {
 			}
 			float level = capture.peakLevel(buffer, samples);
 			inputLevel = inputLevel * 0.68f + level * 0.32f;
-			if (inputLevel <= 0.001f) {
-				continue;
-			}
 			preprocessor.process(buffer, samples);
 
 			boolean effectiveTransmit = resolveTransmitState(level);
 			if (!effectiveTransmit) {
 				if (sendingActive) {
-					// Fade the final frame out instead of just stopping mid-amplitude.
+
 					fadeOut(buffer, samples, Math.min(FADE_SAMPLES, samples));
 					encodeAndSend(buffer);
 					sendingActive = false;
@@ -151,7 +145,7 @@ public final class ClientVoiceManager implements AutoCloseable {
 				continue;
 			}
 			if (!sendingActive) {
-				// Fade the first frame in instead of starting at full amplitude.
+
 				fadeIn(buffer, samples, Math.min(FADE_SAMPLES, samples));
 				sendingActive = true;
 			}
@@ -165,6 +159,9 @@ public final class ClientVoiceManager implements AutoCloseable {
 			voiceActivityGate.reset();
 			return false;
 		}
+		if (!sendingActive && isLikelyPlaybackEcho(level)) {
+			return false;
+		}
 		return switch (config.activationMode()) {
 			case ALWAYS_ON -> true;
 			case PUSH_TO_TALK -> pttHeld.get();
@@ -172,12 +169,26 @@ public final class ClientVoiceManager implements AutoCloseable {
 		};
 	}
 
+	private boolean isLikelyPlaybackEcho(float level) {
+		long now = System.nanoTime();
+		if (now - lastPlaybackNanos > ECHO_GUARD_NANOS) {
+			return false;
+		}
+		return level < recentPlaybackPeak * ECHO_GUARD_MARGIN;
+	}
+
+	private void trackPlaybackLevel(short[] pcm) {
+		float level = capture.peakLevel(pcm, pcm.length);
+		recentPlaybackPeak = Math.max(level, recentPlaybackPeak * 0.85f);
+		lastPlaybackNanos = System.nanoTime();
+	}
+
 	private void encodeAndSend(short[] buffer) {
 		try {
 			byte[] opus = codec.encode(buffer);
 			sendFrame(opus);
 		} catch (Exception e) {
-			Voicy.LOGGER.debug("[Voicy] encode error: {}", e.getMessage());
+			Voicy.LOGGER.warn("[Voicy] encode error, frame dropped: {}", e.getMessage());
 		}
 	}
 
@@ -271,6 +282,12 @@ public final class ClientVoiceManager implements AutoCloseable {
 				if (SpeakerManager.isSpeakerUuid(speakerId)) {
 					Vec3d speakerPos = speakerPositions.get(speakerId);
 					if (speakerPos == null) {
+
+						if (buffer.pollReady() != null) {
+							if (unsyncedSpeakerWarned.add(speakerId)) {
+								Voicy.LOGGER.warn("[Voicy] Discarding voice frames for speaker {} - no position sync yet", speakerId);
+							}
+						}
 						continue;
 					}
 					SpatialAudioSource source = spatialSources.computeIfAbsent(speakerId,
@@ -288,6 +305,7 @@ public final class ClientVoiceManager implements AutoCloseable {
 						if (loggedSpeakerPcm.compareAndSet(false, true)) {
 							Voicy.LOGGER.info("[Voicy] First speaker PCM: samples={}, peak={}", pcm.length, peakLevel(pcm));
 						}
+						trackPlaybackLevel(pcm);
 						int alBuffer = audioEngine.uploadPcm(pcm);
 						source.queuePcm(alBuffer);
 						long queued = queuedSpeakerFrames.incrementAndGet();
@@ -313,6 +331,7 @@ public final class ClientVoiceManager implements AutoCloseable {
 					boolean concealment = readyFrame.opusData().length == 0;
 					short[] pcm = codec.decode(concealment ? null : readyFrame.opusData(), concealment, decoderFor(speakerId));
 					pcm = processPlaybackAudio(speakerId, pcm);
+					trackPlaybackLevel(pcm);
 					int alBuffer = audioEngine.uploadPcm(pcm);
 					source.queuePcm(alBuffer);
 				}

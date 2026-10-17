@@ -14,12 +14,13 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Runtime voice chat configuration with sensible defaults for proximity speech.
- */
 public final class VoicyConfig implements VoiceChatConfigView {
 
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+	// peakLevel() in MicrophoneCapture maps mic dB to this normalized 0..1 range. Above ~0.35
+	// the gate needs near-clipping input to ever open - anything past that is effectively "never".
+	public static final float ACTIVATION_THRESHOLD_MIN = 0.01f;
+	public static final float ACTIVATION_THRESHOLD_MAX = 0.35f;
 	public static final VoicyConfig INSTANCE = load();
 
 	private double proximityRadius = 48.0;
@@ -52,9 +53,17 @@ public final class VoicyConfig implements VoiceChatConfigView {
 				}
 			}
 		} catch (Throwable ignored) {
-			// Safe fallback when this config is loaded outside the Fabric runtime (tests and harnesses).
+			
 		}
+		// Self-heal a threshold saved before this clamp existed (e.g. from a slider drag that
+		// stored its raw 0..1 position directly) - otherwise voice activation stays dead forever
+		// on every future launch with no indication why.
+		config.activationThreshold = clampActivationThreshold(config.activationThreshold);
 		return config;
+	}
+
+	private static float clampActivationThreshold(float value) {
+		return Math.max(ACTIVATION_THRESHOLD_MIN, Math.min(ACTIVATION_THRESHOLD_MAX, value));
 	}
 
 	public void save() {
@@ -65,7 +74,7 @@ public final class VoicyConfig implements VoiceChatConfigView {
 				GSON.toJson(this, writer);
 			}
 		} catch (Throwable ignored) {
-			// Ignore config persistence failures outside the normal game runtime.
+			
 		}
 	}
 
@@ -119,7 +128,7 @@ public final class VoicyConfig implements VoiceChatConfigView {
 	}
 
 	public void setActivationThreshold(float activationThreshold) {
-		this.activationThreshold = activationThreshold;
+		this.activationThreshold = clampActivationThreshold(activationThreshold);
 		save();
 	}
 

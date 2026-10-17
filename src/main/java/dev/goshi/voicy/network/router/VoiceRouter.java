@@ -19,18 +19,21 @@ import java.util.UUID;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Zero-overhead server routing engine: validates sender state, computes proximity, fans out frames.
- */
 public final class VoiceRouter {
 
 	private final VoiceSecurityService securityService;
 	private final VoicyConfig config;
 	private final Map<UUID, Deque<TimestampedFrame>> recentFrames = new ConcurrentHashMap<>();
 	private final Map<UUID, Deque<ReplayFrame>> replayQueues = new ConcurrentHashMap<>();
+	// "<speakerId>:<recipientUuid>" pairs the recipient has already been sent a SpeakerSyncPayload for.
+	private final Set<String> syncedRecipients = ConcurrentHashMap.newKeySet();
 	private long replaySequence = 1_000_000_000L;
+
+	private long lastTickNanos = -1L;
+	private double replayAccumulatorMs = 0.0d;
 
 	public VoiceRouter(VoiceSecurityService securityService, VoicyConfig config) {
 		this.securityService = securityService;
@@ -58,7 +61,8 @@ public final class VoiceRouter {
 		ServerWorld world = sender.getServerWorld();
 		Vec3d senderPos = sender.getPos();
 		double maxRadius = Math.min(Math.max(0.0d, frame.distanceRadius()), config.proximityRadius());
-		Identifier activeChannelId = Identifier.tryParse(senderState.getActiveChannel());
+		String activeChannelStr = senderState.getActiveChannel();
+		Identifier activeChannelId = activeChannelStr == null ? null : Identifier.tryParse(activeChannelStr);
 		var activeChannel = activeChannelId == null ? null
 				: Voicy.getInstance().channelManager().getChannel(activeChannelId).orElse(null);
 		boolean groupRoute = activeChannel != null
@@ -95,6 +99,12 @@ public final class VoiceRouter {
 		relayToSpeakers(sender, frame);
 	}
 
+	/** Forget sync state for a removed/recreated speaker id so position changes always resync. */
+	public void forgetSpeaker(int speakerId) {
+		String prefix = speakerId + ":";
+		syncedRecipients.removeIf(key -> key.startsWith(prefix));
+	}
+
 	public int replayRecentToSpeakers(ServerPlayerEntity sender) {
 		Deque<TimestampedFrame> frames = recentFrames.get(sender.getUuid());
 		if (frames == null || frames.isEmpty()) {
@@ -116,17 +126,37 @@ public final class VoiceRouter {
 	}
 
 	public void tick(MinecraftServer server) {
+		long now = System.nanoTime();
+		if (lastTickNanos < 0) {
+			lastTickNanos = now;
+			return;
+		}
+		double elapsedMs = (now - lastTickNanos) / 1_000_000.0d;
+		lastTickNanos = now;
+		replayAccumulatorMs += elapsedMs;
+		int framesToRelease = (int) (replayAccumulatorMs / Math.max(1, config.frameDurationMs()));
+		if (framesToRelease <= 0) {
+			return;
+		}
+		replayAccumulatorMs -= framesToRelease * Math.max(1, config.frameDurationMs());
+
 		for (var entry : replayQueues.entrySet()) {
 			Deque<ReplayFrame> replayQueue = entry.getValue();
-			ReplayFrame replay;
-			synchronized (replayQueue) {
-				replay = replayQueue.pollFirst();
-			}
-			if (replay == null) {
-				continue;
-			}
-			ServerPlayerEntity sender = findPlayer(server, entry.getKey());
-			if (sender != null) {
+			ServerPlayerEntity sender = null;
+			for (int i = 0; i < framesToRelease; i++) {
+				ReplayFrame replay;
+				synchronized (replayQueue) {
+					replay = replayQueue.pollFirst();
+				}
+				if (replay == null) {
+					break;
+				}
+				if (sender == null) {
+					sender = findPlayer(server, entry.getKey());
+					if (sender == null) {
+						break;
+					}
+				}
 				relayToSpeakers(sender, replay.frame(), replay.sequence());
 			}
 		}
@@ -164,13 +194,14 @@ public final class VoiceRouter {
 		Vec3d senderPos = sender.getPos();
 		double maxRadius = Math.min(Math.max(0.0d, frame.distanceRadius()), config.proximityRadius());
 		for (var speakerEntry : Voicy.getInstance().speakerManager().speakers().entrySet()) {
+			int speakerId = speakerEntry.getKey();
 			var speaker = speakerEntry.getValue();
 			if (!speaker.dimension().equals(world.getRegistryKey())
 					|| speaker.position().distanceTo(senderPos) > maxRadius) {
 				continue;
 			}
 			VoiceFramePayload relay = new VoiceFramePayload(
-					SpeakerManager.speakerUuid(speakerEntry.getKey()),
+					SpeakerManager.speakerUuid(speakerId),
 					sequence,
 					frame.distanceRadius(),
 					frame.opusData()
@@ -185,6 +216,17 @@ public final class VoiceRouter {
 				}
 				if (!securityService.shareChannel(sender.getUuid(), recipient.getUuid())) {
 					continue;
+				}
+				// Guarantee the recipient knows this speaker's position before audio for it
+				// ever reaches them. The one-shot broadcast in SpeakerManager.syncToPlayers()
+				// (fired on /speaker create|remove) can miss a recipient that wasn't online yet,
+				// reconnected, or just dropped the packet - the client then has no position for
+				// this speaker UUID and silently discards every frame for it forever with no
+				// error (ClientVoiceManager.tick: speakerPos == null -> continue). Re-sending
+				// here, gated to once per (speaker, recipient) pair, closes that gap for free.
+				String syncKey = speakerId + ":" + recipient.getUuid();
+				if (syncedRecipients.add(syncKey)) {
+					Voicy.getInstance().speakerManager().syncToPlayer(recipient);
 				}
 				ServerPlayNetworking.send(recipient, relay);
 			}

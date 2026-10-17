@@ -1,8 +1,5 @@
 package net.voicechat.api.config;
 
-/**
- * Read-only view of proximity voice configuration exposed to integrating mods.
- */
 public interface VoiceChatConfigView {
 
 	double proximityRadius();

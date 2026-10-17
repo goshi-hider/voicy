@@ -6,9 +6,6 @@ import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.codec.PacketCodecs;
 import net.minecraft.network.packet.CustomPayload;
 
-/**
- * Negotiates transport mode and optional UDP endpoint during join.
- */
 public record HandshakePayload(
 		TransportMode transportMode,
 		int udpPort,

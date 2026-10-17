@@ -9,9 +9,6 @@ import net.minecraft.util.Identifier;
 
 import java.util.UUID;
 
-/**
- * Encoded Opus frame routed through the unified Fabric payload pipeline.
- */
 public record VoiceFramePayload(
 		UUID speakerId,
 		long sequence,

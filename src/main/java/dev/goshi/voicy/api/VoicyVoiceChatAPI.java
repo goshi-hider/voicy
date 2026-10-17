@@ -19,9 +19,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.UUID;
 
-/**
- * Runtime {@link VoiceChatAPI} implementation bridging public API to internal services.
- */
 public final class VoicyVoiceChatAPI implements VoiceChatAPI {
 
 	private final MuteManagerImpl muteManager;
@@ -255,7 +252,7 @@ public final class VoicyVoiceChatAPI implements VoiceChatAPI {
 						processed = result;
 					}
 				} catch (RuntimeException ignored) {
-					// A third-party filter failure must not silence the voice stream.
+					
 				}
 			}
 			return processed;

@@ -96,6 +96,7 @@ public class Voicy implements ModInitializer {
                                 context.getSource().sendError(Text.literal("Speaker not found: " + id));
                                 return 0;
                             }
+                            router.forgetSpeaker(id);
                             if (runningServer != null) {
                                 speakerManager.syncToPlayers(runningServer);
                             }

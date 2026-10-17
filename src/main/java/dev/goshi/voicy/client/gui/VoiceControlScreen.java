@@ -10,13 +10,11 @@ import net.minecraft.client.gui.widget.SliderWidget;
 import net.minecraft.text.Text;
 import net.minecraft.client.MinecraftClient;
 
-/**
- * In-game voice control panel with mute/deafen toggles, sensitivity, and device selectors.
- */
 public final class VoiceControlScreen extends Screen {
 
 	private final ClientVoiceManager voiceManager;
 	private final VoicyConfig config = VoicyConfig.INSTANCE;
+	private int previousMenuBlurriness;
 
 	public VoiceControlScreen(ClientVoiceManager voiceManager) {
 		super(Text.translatable("screen.voicy.voice_control"));
@@ -25,6 +23,13 @@ public final class VoiceControlScreen extends Screen {
 
 	@Override
 	protected void init() {
+		// Vanilla applies a post-process blur to the world behind ANY open screen, scaled by
+		// the player's "Menu Background Blurriness" option, independent of what this screen's
+		// own render()/renderBackground() draws - so it can't be turned off by changing our
+		// draw calls. Force it off for the duration of this screen, restore on close.
+		previousMenuBlurriness = client.options.getMenuBackgroundBlurriness().getValue();
+		client.options.getMenuBackgroundBlurriness().setValue(0);
+
 		int cx = this.width / 2;
 		int y = 40;
 
@@ -50,9 +55,11 @@ public final class VoiceControlScreen extends Screen {
 		).dimensions(cx - 100, y, 200, 20).build());
 		y += 36;
 
+		float thresholdRange = VoicyConfig.ACTIVATION_THRESHOLD_MAX - VoicyConfig.ACTIVATION_THRESHOLD_MIN;
+		double initialSliderPos = (config.activationThreshold() - VoicyConfig.ACTIVATION_THRESHOLD_MIN) / thresholdRange;
 		addDrawableChild(new SliderWidget(cx - 100, y, 200, 20,
-				Text.translatable("gui.voicy.sensitivity", String.format("%.0f%%", config.activationThreshold() * 100)),
-				config.activationThreshold()) {
+				Text.translatable("gui.voicy.sensitivity", String.format("%.0f%%", initialSliderPos * 100)),
+				initialSliderPos) {
 			@Override
 			protected void updateMessage() {
 				setMessage(Text.translatable("gui.voicy.sensitivity",
@@ -61,7 +68,10 @@ public final class VoiceControlScreen extends Screen {
 
 			@Override
 			protected void applyValue() {
-				config.setActivationThreshold((float) this.value);
+				// this.value is the slider's normalized 0..1 drag position - map it onto the
+				// gate's actual usable range instead of writing it straight into the threshold.
+				float mapped = VoicyConfig.ACTIVATION_THRESHOLD_MIN + (float) this.value * thresholdRange;
+				config.setActivationThreshold(mapped);
 			}
 		});
 		y += 36;
@@ -131,19 +141,24 @@ public final class VoiceControlScreen extends Screen {
 		context.drawTexture(Voicy.id("textures/gui/voice_badge.png"), width / 2 - 116, 13, 0.0f, 0.0f, 20, 20, 128, 128);
 		context.drawCenteredTextWithShadow(textRenderer, title, width / 2 - 5, 16, 0xFFFFFFFF);
 
-		int meterWidth = 180;
-		int meterX = width / 2 - meterWidth / 2;
-		int meterY = height - 54;
-		context.fill(meterX, meterY, meterX + meterWidth, meterY + 14, 0xFF171717);
+		// Vertical meter, right edge of the screen, fills bottom-to-top with input level.
+		int meterWidth = 16;
+		int meterHeight = 150;
+		int meterX = width - 40 - meterWidth;
+		int meterY = (height - meterHeight) / 2;
+		context.fill(meterX, meterY, meterX + meterWidth, meterY + meterHeight, 0xFF171717);
 		context.fill(meterX, meterY, meterX + meterWidth, meterY + 1, 0xFF2D2D2D);
-		int fill = Math.min(meterWidth, Math.max(0, (int) (voiceManager.getInputLevel() * meterWidth)));
+
 		float level = voiceManager.getInputLevel();
+		int fillHeight = Math.min(meterHeight, Math.max(0, (int) (level * meterHeight)));
+		int fillTop = meterY + (meterHeight - fillHeight);
 		int red = (int) (255 * (1.0f - level));
 		int green = (int) (255 * level);
-		int meterColor = (red << 16) | (green << 8) | 0x00;
-		context.fill(meterX, meterY, meterX + fill, meterY + 14, meterColor | 0xFF000000);
-		Text meterLabel = Text.literal("Voice meter");
-		context.drawCenteredTextWithShadow(textRenderer, meterLabel, width / 2, meterY - 12, 0xFFFFFFFF);
+		int meterColor = 0xFF000000 | (red << 16) | (green << 8);
+		context.fill(meterX, fillTop, meterX + meterWidth, meterY + meterHeight, meterColor);
+
+		Text meterLabel = Text.literal("Mic");
+		context.drawCenteredTextWithShadow(textRenderer, meterLabel, meterX + meterWidth / 2, meterY - 12, 0xFFFFFFFF);
 
 		super.render(context, mouseX, mouseY, delta);
 	}
@@ -151,5 +166,11 @@ public final class VoiceControlScreen extends Screen {
 	@Override
 	public boolean shouldPause() {
 		return false;
+	}
+
+	@Override
+	public void removed() {
+		client.options.getMenuBackgroundBlurriness().setValue(previousMenuBlurriness);
+		super.removed();
 	}
 }

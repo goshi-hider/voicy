@@ -8,9 +8,6 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Group and private audio channels layered on top of proximity routing.
- */
 public interface ChannelManager {
 
 	@NotNull
@@ -23,9 +20,6 @@ public interface ChannelManager {
 	@NotNull
 	Collection<VoiceChannel> getChannels();
 
-	/**
-	 * Moves a player into a channel. Server validates membership changes.
-	 */
 	boolean joinChannel(@NotNull UUID playerId, @NotNull Identifier channelId);
 
 	boolean leaveChannel(@NotNull UUID playerId, @NotNull Identifier channelId);

@@ -1,6 +1,5 @@
 package dev.goshi.voicy.audio.capture;
 
-/** Hysteresis and hangover for frame-based voice activation. */
 public final class VoiceActivityGate {
 
 	private final float activationThreshold;

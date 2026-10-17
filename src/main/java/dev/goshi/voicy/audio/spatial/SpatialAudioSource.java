@@ -13,9 +13,6 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.UUID;
 
-/**
- * OpenAL spatial source with logarithmic attenuation, occlusion stub, and EFX reverb send.
- */
 public final class SpatialAudioSource implements AutoCloseable {
 
 	private final int source;
@@ -64,7 +61,6 @@ public final class SpatialAudioSource implements AutoCloseable {
 		AL10.alListenerf(AL10.AL_GAIN, 1.0f);
 		AL10.alSource3f(source, AL10.AL_POSITION, (float) delta.x, (float) delta.y, (float) delta.z);
 
-		// Occlusion effects are optional. Basic voice playback must not depend on EFX support.
 		if (occluded) {
 			setGain(0.35f);
 		}

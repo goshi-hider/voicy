@@ -13,9 +13,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.function.BiConsumer;
 
-/**
- * Server-side channel registry with membership tracking for routing overrides.
- */
 public final class ServerChannelManager implements ChannelManager {
 
 	private final Map<Identifier, VoiceChannelImpl> channels = new ConcurrentHashMap<>();

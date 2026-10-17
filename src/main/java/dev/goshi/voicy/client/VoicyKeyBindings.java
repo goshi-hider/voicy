@@ -7,9 +7,6 @@ import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
 
-/**
- * Default keybindings: M mute, N deafen, V GUI, H push-to-talk.
- */
 public final class VoicyKeyBindings {
 
 	public static KeyBinding TOGGLE_MUTE;

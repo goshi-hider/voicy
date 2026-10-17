@@ -2,9 +2,6 @@ package dev.goshi.voicy.security;
 
 import java.util.UUID;
 
-/**
- * Immutable authoritative per-player voice state maintained exclusively on the server.
- */
 public final class PlayerVoiceState {
 
 	private final UUID playerId;

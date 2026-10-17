@@ -7,9 +7,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-/**
- * Lightweight event bus for third-party mods. Callbacks are invoked on the appropriate logical thread.
- */
 public interface VoiceChatEvents {
 
 	void onPlayerMuted(@NotNull Consumer<PlayerMuteEvent> listener);
@@ -24,7 +21,6 @@ public interface VoiceChatEvents {
 
 	void onPlayerStopTalking(@NotNull Consumer<PlayerTalkingEvent> listener);
 
-	/** Unregisters a listener from any event types it subscribed to. */
 	void unregisterListener(@NotNull Consumer<?> listener);
 
 	record PlayerMuteEvent(@NotNull UUID playerId, @NotNull MuteReason reason, @NotNull Identifier sourceMod) {

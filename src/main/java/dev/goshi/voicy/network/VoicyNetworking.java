@@ -8,9 +8,6 @@ import dev.goshi.voicy.network.payload.VoiceFramePayload;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.minecraft.util.Identifier;
 
-/**
- * Registers all custom payload types and exposes their {@link Identifier} constants.
- */
 public final class VoicyNetworking {
 
 	public static final Identifier VOICE_FRAME = Voicy.id("voice_frame");

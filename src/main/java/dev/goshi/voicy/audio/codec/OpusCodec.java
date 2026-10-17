@@ -6,9 +6,6 @@ import io.github.jaredmdobson.concentus.OpusDecoder;
 import io.github.jaredmdobson.concentus.OpusEncoder;
 import io.github.jaredmdobson.concentus.OpusSignal;
 
-/**
- * Opus encode/decode wrapper using Concentus (pure Java, no native deps).
- */
 public final class OpusCodec implements AutoCloseable {
 
 	private final OpusEncoder encoder;
@@ -77,6 +74,6 @@ public final class OpusCodec implements AutoCloseable {
 
 	@Override
 	public void close() {
-		// Concentus codecs are GC-managed
+		
 	}
 }

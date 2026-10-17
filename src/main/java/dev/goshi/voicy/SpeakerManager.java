@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.UUID;
 
 public final class SpeakerManager {
-	private static final long SPEAKER_MAGIC = 0x564F4953564F4E45L; // "VOICYSPE"
+	private static final long SPEAKER_MAGIC = 0x564F4953564F4E45L; 
 
 	private final Map<Integer, SpeakerEntry> speakers = new LinkedHashMap<>();
 	private ServerWorld world;
@@ -143,7 +143,6 @@ public final class SpeakerManager {
 	public Map<Integer, SpeakerEntry> speakers() {
 		return Collections.unmodifiableMap(speakers);
 	}
-
 
 	private static boolean isOccluded(ServerWorld world, Vec3d start, Vec3d end) {
 		var hit = world.raycast(new RaycastContext(

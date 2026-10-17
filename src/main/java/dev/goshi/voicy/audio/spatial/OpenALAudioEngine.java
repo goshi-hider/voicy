@@ -8,9 +8,6 @@ import org.lwjgl.system.MemoryUtil;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-/**
- * OpenAL buffer pool for streaming PCM chunks to spatial sources.
- */
 public final class OpenALAudioEngine implements AutoCloseable {
 
 	private final int format;
@@ -53,7 +50,7 @@ public final class OpenALAudioEngine implements AutoCloseable {
 
 	public void setOutputDevice(String deviceName) {
 		long current = ALC10.alcGetContextsDevice(ALC10.alcGetCurrentContext());
-		// Device hot-swap requires context recreation — deferred to client lifecycle manager
+		
 		if (deviceName != null && !deviceName.isEmpty()) {
 			ALC10.alcGetString(current, ALC11.ALC_ALL_DEVICES_SPECIFIER);
 		}
@@ -61,6 +58,6 @@ public final class OpenALAudioEngine implements AutoCloseable {
 
 	@Override
 	public void close() {
-		// Context owned by Minecraft
+		
 	}
 }

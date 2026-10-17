@@ -10,9 +10,6 @@ import javax.sound.sampled.TargetDataLine;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Microphone capture via Java Sound API with optional device selection.
- */
 public final class MicrophoneCapture implements AutoCloseable {
 
 	private final VoicyConfig config;
@@ -87,10 +84,7 @@ public final class MicrophoneCapture implements AutoCloseable {
 		if (line == null) {
 			line = (TargetDataLine) AudioSystem.getLine(info);
 		}
-		// Buffer sized to exactly one Opus frame leaves zero headroom: any tiny scheduling
-		// delay on the capture thread (GC pause, OS jitter, virtual thread scheduling) causes
-		// the line to overflow and corrupt/drop samples, which is heard as static/crackling
-		// once the noise gate opens for real speech. Give it several frames of slack instead.
+		
 		int lineBufferBytes = config.frameSizeSamples() * 2 * 8;
 		line.open(format, lineBufferBytes);
 		line.start();

@@ -17,9 +17,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Authoritative verification protocol: validates mod namespaces, enforces mute/deafen, drops exploit attempts.
- */
 public final class VoiceSecurityService {
 
 	private final Map<UUID, PlayerVoiceState> states = new ConcurrentHashMap<>();

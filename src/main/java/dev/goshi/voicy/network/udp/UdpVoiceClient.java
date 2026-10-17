@@ -12,9 +12,6 @@ import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * Lightweight UDP client used for the negotiated voice transport.
- */
 public final class UdpVoiceClient implements AutoCloseable {
 
 	private static final int MAX_PACKET = 2048;
@@ -26,6 +23,16 @@ public final class UdpVoiceClient implements AutoCloseable {
 	private String username = "";
 	private byte[] sessionSecret = new byte[0];
 	private Thread readerThread;
+	private VoiceFrameConsumer consumer = frame -> {};
+
+	@FunctionalInterface
+	public interface VoiceFrameConsumer {
+		void accept(VoiceFramePayload frame);
+	}
+
+	public void setConsumer(VoiceFrameConsumer consumer) {
+		this.consumer = consumer == null ? frame -> {} : consumer;
+	}
 
 	public void startSession(String username, String host, int port, byte[] secret) {
 		close();
@@ -66,6 +73,10 @@ public final class UdpVoiceClient implements AutoCloseable {
 			} catch (IOException ignored) {
 				continue;
 			}
+			VoiceFramePayload frame = decode(packet.getData(), packet.getLength());
+			if (frame != null) {
+				consumer.accept(frame);
+			}
 		}
 	}
 
@@ -84,8 +95,14 @@ public final class UdpVoiceClient implements AutoCloseable {
 		return buf.array();
 	}
 
+	/**
+	 * Decodes an S2C packet as written by UdpVoiceServer.encode(): [uuid:16][seq:8][radius:4][opus].
+	 * No secret field here - the client already trusts whatever its own socket is bound to the
+	 * negotiated server address/port for. (This is a distinct wire format from the C2S packets this
+	 * class sends via encode(frame, secret), which UdpVoiceServer.decodeAuthenticated() parses.)
+	 */
 	public static VoiceFramePayload decode(byte[] data, int length) {
-		if (length < 16 + 8 + 4 + 4) {
+		if (length < 16 + 8 + 4) {
 			return null;
 		}
 		ByteBuffer buf = ByteBuffer.wrap(data, 0, length);
@@ -94,17 +111,11 @@ public final class UdpVoiceClient implements AutoCloseable {
 		UUID speaker = new UUID(msb, lsb);
 		long sequence = buf.getLong();
 		float radius = buf.getFloat();
-		int secretLength = buf.getInt();
-		if (secretLength < 0 || secretLength > 4096) {
-			return null;
-		}
-		if (buf.remaining() < secretLength) {
-			return null;
-		}
-		byte[] secret = new byte[secretLength];
-		buf.get(secret);
 		byte[] opus = new byte[buf.remaining()];
 		buf.get(opus);
+		if (opus.length == 0) {
+			return null;
+		}
 		return new VoiceFramePayload(speaker, sequence, radius, opus);
 	}
 

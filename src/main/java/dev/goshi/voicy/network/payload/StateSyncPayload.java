@@ -8,9 +8,6 @@ import net.minecraft.network.packet.CustomPayload;
 
 import java.util.UUID;
 
-/**
- * Authoritative mute/deafen state pushed from server to clients.
- */
 public record StateSyncPayload(
 		UUID playerId,
 		boolean muted,
