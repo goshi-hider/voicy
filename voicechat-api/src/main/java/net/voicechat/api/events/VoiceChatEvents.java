@@ -1,0 +1,44 @@
+package net.voicechat.api.events;
+
+import net.minecraft.util.Identifier;
+import net.voicechat.api.mute.MuteReason;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.UUID;
+import java.util.function.Consumer;
+
+/**
+ * Lightweight event bus for third-party mods. Callbacks are invoked on the appropriate logical thread.
+ */
+public interface VoiceChatEvents {
+
+	void onPlayerMuted(@NotNull Consumer<PlayerMuteEvent> listener);
+
+	void onPlayerUnmuted(@NotNull Consumer<PlayerUnmuteEvent> listener);
+
+	void onPlayerDeafened(@NotNull Consumer<PlayerDeafenEvent> listener);
+
+	void onPlayerUndeafened(@NotNull Consumer<PlayerUndeafenEvent> listener);
+
+	void onPlayerStartTalking(@NotNull Consumer<PlayerTalkingEvent> listener);
+
+	void onPlayerStopTalking(@NotNull Consumer<PlayerTalkingEvent> listener);
+
+	/** Unregisters a listener from any event types it subscribed to. */
+	void unregisterListener(@NotNull Consumer<?> listener);
+
+	record PlayerMuteEvent(@NotNull UUID playerId, @NotNull MuteReason reason, @NotNull Identifier sourceMod) {
+	}
+
+	record PlayerUnmuteEvent(@NotNull UUID playerId, @NotNull Identifier sourceMod) {
+	}
+
+	record PlayerDeafenEvent(@NotNull UUID playerId, @NotNull Identifier sourceMod) {
+	}
+
+	record PlayerUndeafenEvent(@NotNull UUID playerId, @NotNull Identifier sourceMod) {
+	}
+
+	record PlayerTalkingEvent(@NotNull UUID playerId) {
+	}
+}

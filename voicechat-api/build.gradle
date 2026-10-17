@@ -1,0 +1,39 @@
+plugins {
+	id 'net.fabricmc.fabric-loom-remap' version "${loom_version}"
+	id 'java-library'
+	id 'maven-publish'
+}
+
+base {
+	archivesName = 'voicechat-api'
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+	modCompileOnly "net.fabricmc:fabric-loader:${project.loader_version}"
+	compileOnly 'org.jetbrains:annotations:24.1.0'
+}
+
+java {
+	withSourcesJar()
+	sourceCompatibility = JavaVersion.VERSION_21
+	targetCompatibility = JavaVersion.VERSION_21
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 21
+}
+
+tasks.matching { it.name in ['runClient', 'runServer', 'runDatagen', 'runClientRenderDoc'] }.configureEach {
+	enabled = false
+}
+
+publishing {
+	publications {
+		create('mavenJava', MavenPublication) {
+			from components.java
+			artifactId = 'voicechat-api'
+		}
+	}
+}

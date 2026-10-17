@@ -1,0 +1,183 @@
+package dev.goshi.voicy.config;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import net.fabricmc.loader.api.FabricLoader;
+import net.voicechat.api.config.VoiceChatConfigView;
+
+import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * Runtime voice chat configuration with sensible defaults for proximity speech.
+ */
+public final class VoicyConfig implements VoiceChatConfigView {
+
+	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+	public static final VoicyConfig INSTANCE = load();
+
+	private double proximityRadius = 48.0;
+	private double proximityFalloff = 1.0;
+	private int sampleRate = 48000;
+	private int frameDurationMs = 20;
+	private ActivationMode activationMode = ActivationMode.VOICE_ACTIVATION;
+	private float activationThreshold = 0.12f;
+	private boolean preferUdpFallback = true;
+	private boolean realisticOcclusion = true;
+	private String selectedInputDevice = "";
+	private String selectedOutputDevice = "";
+	private int maxOpusBitrate = 40000;
+	private int jitterBufferMs = 120;
+	private Map<UUID, Float> playerVolumes = new ConcurrentHashMap<>();
+
+	private VoicyConfig() {
+	}
+
+	private static VoicyConfig load() {
+		VoicyConfig config = new VoicyConfig();
+		try {
+			Path configPath = FabricLoader.getInstance().getConfigDir().resolve("voicy.json");
+			if (Files.exists(configPath)) {
+				try (Reader reader = Files.newBufferedReader(configPath)) {
+					VoicyConfig loaded = GSON.fromJson(reader, VoicyConfig.class);
+					if (loaded != null) {
+						config = loaded;
+					}
+				}
+			}
+		} catch (Throwable ignored) {
+			// Safe fallback when this config is loaded outside the Fabric runtime (tests and harnesses).
+		}
+		return config;
+	}
+
+	public void save() {
+		try {
+			Path configPath = FabricLoader.getInstance().getConfigDir().resolve("voicy.json");
+			Files.createDirectories(configPath.getParent());
+			try (Writer writer = Files.newBufferedWriter(configPath)) {
+				GSON.toJson(this, writer);
+			}
+		} catch (Throwable ignored) {
+			// Ignore config persistence failures outside the normal game runtime.
+		}
+	}
+
+	public double proximityRadius() {
+		return proximityRadius;
+	}
+
+	public void setProximityRadius(double proximityRadius) {
+		this.proximityRadius = proximityRadius;
+		save();
+	}
+
+	public double proximityFalloff() {
+		return proximityFalloff;
+	}
+
+	public void setProximityFalloff(double proximityFalloff) {
+		this.proximityFalloff = proximityFalloff;
+		save();
+	}
+
+	public int sampleRate() {
+		return sampleRate;
+	}
+
+	public void setSampleRate(int sampleRate) {
+		this.sampleRate = sampleRate;
+		save();
+	}
+
+	public int frameDurationMs() {
+		return frameDurationMs;
+	}
+
+	public void setFrameDurationMs(int frameDurationMs) {
+		this.frameDurationMs = frameDurationMs;
+		save();
+	}
+
+	public ActivationMode activationMode() {
+		return activationMode;
+	}
+
+	public void setActivationMode(ActivationMode activationMode) {
+		this.activationMode = activationMode;
+		save();
+	}
+
+	public float activationThreshold() {
+		return activationThreshold;
+	}
+
+	public void setActivationThreshold(float activationThreshold) {
+		this.activationThreshold = activationThreshold;
+		save();
+	}
+
+	public boolean preferUdpFallback() {
+		return preferUdpFallback;
+	}
+
+	public boolean realisticOcclusion() {
+		return realisticOcclusion;
+	}
+
+	public void setRealisticOcclusion(boolean realisticOcclusion) {
+		this.realisticOcclusion = realisticOcclusion;
+		save();
+	}
+
+	public String selectedInputDevice() {
+		return selectedInputDevice;
+	}
+
+	public void setSelectedInputDevice(String selectedInputDevice) {
+		this.selectedInputDevice = selectedInputDevice == null ? "" : selectedInputDevice;
+		save();
+	}
+
+	public String selectedOutputDevice() {
+		return selectedOutputDevice;
+	}
+
+	public void setSelectedOutputDevice(String selectedOutputDevice) {
+		this.selectedOutputDevice = selectedOutputDevice == null ? "" : selectedOutputDevice;
+		save();
+	}
+
+	public int maxOpusBitrate() {
+		return maxOpusBitrate;
+	}
+
+	public int jitterBufferMs() {
+		return jitterBufferMs;
+	}
+
+	public float playerVolume(UUID playerId) {
+		if (playerVolumes == null) {
+			playerVolumes = new ConcurrentHashMap<>();
+		}
+		return playerVolumes.getOrDefault(playerId, 1.0f);
+	}
+
+	public void setPlayerVolume(UUID playerId, float volume) {
+		if (playerVolumes == null) {
+			playerVolumes = new ConcurrentHashMap<>();
+		}
+		playerVolumes.put(playerId, Math.max(0.0f, Math.min(2.0f, volume)));
+		save();
+	}
+
+	public int frameSizeSamples() {
+		return sampleRate * frameDurationMs / 1000;
+	}
+}

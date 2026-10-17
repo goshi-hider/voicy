@@ -1,0 +1,19 @@
+{
+  "key.voicy.toggle_mute": "Toggle Microphone Mute",
+  "key.voicy.toggle_deafen": "Toggle Audio Deafen",
+  "key.voicy.open_gui": "Open Voice Control",
+  "key.voicy.push_to_talk": "Push To Talk",
+  "key.category.voicy": "Voicy",
+  "screen.voicy.voice_control": "Voice Control",
+  "screen.voicy.player_audio": "Players",
+  "gui.voicy.mute": "Mute Microphone",
+  "gui.voicy.unmute": "Unmute Microphone",
+  "gui.voicy.deafen": "Deafen Audio",
+  "gui.voicy.undeafen": "Undeafen Audio",
+  "gui.voicy.sensitivity": "Sensitivity: %s",
+  "gui.voicy.microphone": "Microphone: %s",
+  "gui.voicy.player_volume": "Player volume: %s",
+  "gui.voicy.reset_player_volume": "Reset to 100%",
+  "gui.voicy.no_other_players": "No other players are in this world.",
+  "gui.voicy.player_volume_help": "Set local playback volume for a player."
+}

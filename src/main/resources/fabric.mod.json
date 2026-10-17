@@ -1,0 +1,33 @@
+{
+	"schemaVersion": 1,
+	"id": "voicy",
+	"version": "${version}",
+	"name": "Voicy",
+	"description": "Zero-config proximity voice chat for Fabric 1.21 with authoritative server security and third-party API.",
+	"authors": [
+		"Goshi"
+	],
+	"license": "MIT",
+	"icon": "assets/voicy/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"dev.goshi.voicy.Voicy"
+		],
+		"client": [
+			"dev.goshi.voicy.VoicyClient"
+		],
+		"fabric-datagen": [
+			"dev.goshi.voicy.VoicyDataGenerator"
+		]
+	},
+	"mixins": [
+		"voicy.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~1.21",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
