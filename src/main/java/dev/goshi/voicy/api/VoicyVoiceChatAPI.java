@@ -91,9 +91,9 @@ public final class VoicyVoiceChatAPI implements VoiceChatAPI {
 
 	@Override
 	public @NotNull VoiceState getVoiceState(@NotNull UUID playerId) {
-		VoiceState synchronizedState = clientVoiceManager.getSynchronizedVoiceState(playerId);
+		ClientVoiceManager.SyncedMuteState synchronizedState = clientVoiceManager.getSynchronizedVoiceState(playerId);
 		if (synchronizedState != null) {
-			return synchronizedState;
+			return new VoiceState(synchronizedState.muted(), synchronizedState.deafened(), null);
 		}
 		var state = muteManager.securityService.getState(playerId);
 		Identifier channel = state.getActiveChannel() == null ? null : Identifier.tryParse(state.getActiveChannel());
@@ -138,7 +138,7 @@ public final class VoicyVoiceChatAPI implements VoiceChatAPI {
 
 		@Override
 		public boolean isMuted(@NotNull UUID playerId) {
-			VoiceChatAPI.VoiceState synchronizedState = clientVoiceManager.getSynchronizedVoiceState(playerId);
+			ClientVoiceManager.SyncedMuteState synchronizedState = clientVoiceManager.getSynchronizedVoiceState(playerId);
 			if (synchronizedState != null) {
 				return synchronizedState.muted();
 			}
@@ -184,7 +184,7 @@ public final class VoicyVoiceChatAPI implements VoiceChatAPI {
 
 		@Override
 		public boolean isDeafened(@NotNull UUID playerId) {
-			VoiceChatAPI.VoiceState synchronizedState = clientVoiceManager.getSynchronizedVoiceState(playerId);
+			ClientVoiceManager.SyncedMuteState synchronizedState = clientVoiceManager.getSynchronizedVoiceState(playerId);
 			if (synchronizedState != null) {
 				return synchronizedState.deafened();
 			}
@@ -252,7 +252,7 @@ public final class VoicyVoiceChatAPI implements VoiceChatAPI {
 						processed = result;
 					}
 				} catch (RuntimeException ignored) {
-					
+
 				}
 			}
 			return processed;

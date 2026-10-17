@@ -43,7 +43,7 @@ public final class ClientVoiceManager implements AutoCloseable {
 	private final Map<UUID, OpusDecoder> playbackDecoders = new ConcurrentHashMap<>();
 	private final Map<UUID, SpatialAudioSource> spatialSources = new ConcurrentHashMap<>();
 	private final Map<UUID, Vec3d> speakerPositions = new ConcurrentHashMap<>();
-	private final Map<UUID, VoiceChatAPI.VoiceState> synchronizedVoiceStates = new ConcurrentHashMap<>();
+	private final Map<UUID, SyncedMuteState> synchronizedVoiceStates = new ConcurrentHashMap<>();
 	private final Map<UUID, Long> lastVoiceFrameNanos = new ConcurrentHashMap<>();
 	private final Set<UUID> talkingSources = ConcurrentHashMap.newKeySet();
 	private static final long TALKING_TIMEOUT_NANOS = 400_000_000L;
@@ -411,8 +411,8 @@ public final class ClientVoiceManager implements AutoCloseable {
 	}
 
 	public void applyServerVoiceState(UUID playerId, boolean muted, boolean deafened) {
-		VoiceChatAPI.VoiceState previous = synchronizedVoiceStates.put(
-				playerId, new VoiceChatAPI.VoiceState(muted, deafened, null));
+		SyncedMuteState previous = synchronizedVoiceStates.put(
+				playerId, new SyncedMuteState(muted, deafened));
 		VoicyVoiceChatAPI.publishVoiceState(playerId,
 				previous != null && previous.muted(), muted,
 				previous != null && previous.deafened(), deafened);
@@ -422,8 +422,11 @@ public final class ClientVoiceManager implements AutoCloseable {
 		}
 	}
 
-	public VoiceChatAPI.VoiceState getSynchronizedVoiceState(UUID playerId) {
+	public SyncedMuteState getSynchronizedVoiceState(UUID playerId) {
 		return synchronizedVoiceStates.get(playerId);
+	}
+
+	public record SyncedMuteState(boolean muted, boolean deafened) {
 	}
 
 	private void sendSelfStateUpdate() {
