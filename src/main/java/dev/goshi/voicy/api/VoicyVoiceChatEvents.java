@@ -83,7 +83,8 @@ final class VoicyVoiceChatEvents implements VoiceChatEvents {
 		for (Consumer<T> listener : listeners) {
 			try {
 				listener.accept(event);
-			} catch (RuntimeException ignored) {
+			} catch (RuntimeException e) {
+				dev.goshi.voicy.Voicy.LOGGER.warn("[Voicy] Event listener threw: {}", e.toString());
 			}
 		}
 	}

@@ -58,8 +58,9 @@ public final class ClientVoiceManager implements AutoCloseable {
 	private volatile boolean sendingActive = false;
 
 	private Thread captureThread;
-	private HandshakePayload.TransportMode transportMode = HandshakePayload.TransportMode.FABRIC_PAYLOAD;
-	private UdpVoiceClient udpClient;
+	private volatile HandshakePayload.TransportMode transportMode = HandshakePayload.TransportMode.FABRIC_PAYLOAD;
+	private volatile UdpVoiceClient udpClient;
+	private final java.util.concurrent.atomic.AtomicInteger probeGeneration = new java.util.concurrent.atomic.AtomicInteger();
 	private volatile float inputLevel;
 	private final AtomicLong receivedSpeakerFrames = new AtomicLong();
 	private final AtomicLong queuedSpeakerFrames = new AtomicLong();
@@ -81,18 +82,92 @@ public final class ClientVoiceManager implements AutoCloseable {
 
 	public void setTransport(HandshakePayload handshake) {
 		this.transportMode = handshake.transportMode();
+		String host = resolveUdpHost(handshake.udpHost());
 		if (handshake.transportMode() == HandshakePayload.TransportMode.UDP_FALLBACK) {
-			if (udpClient == null) {
-				udpClient = new UdpVoiceClient();
-				udpClient.setConsumer(frame -> MinecraftClient.getInstance().execute(() -> onVoiceFrame(frame)));
+			UdpVoiceClient udp = udpClient;
+			if (udp == null) {
+				udp = new UdpVoiceClient();
+				udp.setConsumer(frame -> MinecraftClient.getInstance().execute(() -> onVoiceFrame(frame)));
+				udpClient = udp;
 			}
-			udpClient.startSession(MinecraftClient.getInstance().getSession().getUsername(), handshake.udpHost(), handshake.udpPort(), handshake.sessionSecret());
-		} else if (udpClient != null) {
-			udpClient.close();
-			udpClient = null;
+			udp.startSession(MinecraftClient.getInstance().getSession().getUsername(), host, handshake.udpPort(), handshake.sessionSecret());
+			startUdpProbe(udp);
+		} else {
+			probeGeneration.incrementAndGet();
+			UdpVoiceClient udp = udpClient;
+			if (udp != null) {
+				udp.close();
+				udpClient = null;
+			}
 		}
 		Voicy.LOGGER.info("[Voicy] Voice transport negotiated: {} (sampleRate={}, frameMs={}, udpHost={})",
-				handshake.transportMode(), handshake.sampleRate(), handshake.frameDurationMs(), handshake.udpHost());
+				handshake.transportMode(), handshake.sampleRate(), handshake.frameDurationMs(), host);
+	}
+
+	/**
+	 * The server can't know its own public address, so it sends an empty host and we use the address we
+	 * connected to. Integrated/singleplayer connections aren't IP sockets, so those map to loopback.
+	 */
+	private static String resolveUdpHost(String advertised) {
+		if (advertised != null && !advertised.isBlank()) {
+			return advertised;
+		}
+		try {
+			var handler = MinecraftClient.getInstance().getNetworkHandler();
+			if (handler != null && handler.getConnection().getAddress() instanceof java.net.InetSocketAddress inet) {
+				String host = inet.getHostString();
+				if (host != null && !host.isBlank()) {
+					return host;
+				}
+			}
+		} catch (RuntimeException e) {
+			Voicy.LOGGER.debug("[Voicy] Could not read server address: {}", e.toString());
+		}
+		return "127.0.0.1";
+	}
+
+	/**
+	 * UDP is only a faster uplink. Until the server answers a probe we keep sending voice over the normal
+	 * Minecraft connection, so a firewalled/unforwarded UDP port can never silence the player.
+	 */
+	private void startUdpProbe(UdpVoiceClient udp) {
+		final int generation = probeGeneration.incrementAndGet();
+		Thread.ofVirtual().name("voicy-udp-probe").start(() -> {
+			try {
+				for (int attempt = 0; attempt < 20; attempt++) {
+					if (probeGeneration.get() != generation || !udp.isRunning() || udp.isAcked()) {
+						break;
+					}
+					var player = MinecraftClient.getInstance().player;
+					if (player != null) {
+						udp.sendProbe(player.getUuid());
+					}
+					Thread.sleep(500);
+				}
+				if (probeGeneration.get() == generation) {
+					if (udp.isAcked()) {
+						Voicy.LOGGER.info("[Voicy] UDP voice uplink verified");
+					} else {
+						Voicy.LOGGER.warn("[Voicy] UDP not reachable (port closed/blocked?) - using Minecraft connection for voice");
+					}
+				}
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+			} catch (Exception e) {
+				Voicy.LOGGER.warn("[Voicy] UDP probe failed: {}", e.getMessage());
+			}
+		});
+	}
+
+	/** Drops the UDP session (if any); call on disconnect so a new server never inherits an old socket/secret. */
+	public void closeTransport() {
+		probeGeneration.incrementAndGet();
+		UdpVoiceClient udp = udpClient;
+		udpClient = null;
+		if (udp != null) {
+			udp.close();
+		}
+		transportMode = HandshakePayload.TransportMode.FABRIC_PAYLOAD;
 	}
 
 	public void startCapture() {
@@ -224,9 +299,10 @@ public final class ClientVoiceManager implements AutoCloseable {
 				(float) config.proximityRadius(),
 				opus
 		);
-		if (transportMode == HandshakePayload.TransportMode.UDP_FALLBACK && udpClient != null && udpClient.isRunning()) {
+		UdpVoiceClient udp = udpClient;
+		if (transportMode == HandshakePayload.TransportMode.UDP_FALLBACK && udp != null && udp.isRunning() && udp.isAcked()) {
 			try {
-				udpClient.sendFrame(payload);
+				udp.sendFrame(payload);
 				return;
 			} catch (Exception e) {
 				Voicy.LOGGER.warn("[Voicy] UDP send failed, falling back to fabric payload: {}", e.getMessage());

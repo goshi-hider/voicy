@@ -27,6 +27,7 @@ public class VoicyClient implements ClientModInitializer {
 			ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
 				if (voiceManager != null) {
 					voiceManager.stopCapture();
+					voiceManager.closeTransport();
 				}
 			});
 

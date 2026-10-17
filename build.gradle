@@ -19,8 +19,12 @@ dependencies {
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
-	api project(':voicechat-api')
-	include project(path: ':voicechat-api', configuration: 'namedElements')
+	// Dev runtime/compile must use the *named* (yarn) output of the api module, otherwise the
+	// default (remapped, intermediary) jar ends up on the classpath and any api class that
+	// mentions a Minecraft type (e.g. Identifier) throws NoSuchMethodError at runtime.
+	api project(path: ':voicechat-api', configuration: 'namedElements')
+	// Production jar-in-jar must be the remapped (intermediary) output - the default config.
+	include project(':voicechat-api')
 
 	implementation 'io.github.jaredmdobson:concentus:1.0.2'
 	include 'io.github.jaredmdobson:concentus:1.0.2'

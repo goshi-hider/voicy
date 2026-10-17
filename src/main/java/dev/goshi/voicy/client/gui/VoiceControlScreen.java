@@ -4,17 +4,15 @@ import dev.goshi.voicy.client.ClientVoiceManager;
 import dev.goshi.voicy.config.VoicyConfig;
 import dev.goshi.voicy.Voicy;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.SliderWidget;
 import net.minecraft.text.Text;
 import net.minecraft.client.MinecraftClient;
 
-public final class VoiceControlScreen extends Screen {
+public final class VoiceControlScreen extends VoicyScreen {
 
 	private final ClientVoiceManager voiceManager;
 	private final VoicyConfig config = VoicyConfig.INSTANCE;
-	private int previousMenuBlurriness;
 
 	public VoiceControlScreen(ClientVoiceManager voiceManager) {
 		super(Text.translatable("screen.voicy.voice_control"));
@@ -23,13 +21,6 @@ public final class VoiceControlScreen extends Screen {
 
 	@Override
 	protected void init() {
-		// Vanilla applies a post-process blur to the world behind ANY open screen, scaled by
-		// the player's "Menu Background Blurriness" option, independent of what this screen's
-		// own render()/renderBackground() draws - so it can't be turned off by changing our
-		// draw calls. Force it off for the duration of this screen, restore on close.
-		previousMenuBlurriness = client.options.getMenuBackgroundBlurriness().getValue();
-		client.options.getMenuBackgroundBlurriness().setValue(0);
-
 		int cx = this.width / 2;
 		int y = 40;
 
@@ -134,8 +125,7 @@ public final class VoiceControlScreen extends Screen {
 	}
 
 	@Override
-	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-		renderBackground(context, mouseX, mouseY, delta);
+	protected void renderPanels(DrawContext context, int mouseX, int mouseY, float delta) {
 		context.fill(width / 2 - 124, 12, width / 2 + 124, 32, 0x66000000);
 		context.fill(width / 2 - 124, 12, width / 2 + 124, 13, 0xFF2A2A2A);
 		context.drawTexture(Voicy.id("textures/gui/voice_badge.png"), width / 2 - 116, 13, 0.0f, 0.0f, 20, 20, 128, 128);
@@ -160,17 +150,7 @@ public final class VoiceControlScreen extends Screen {
 		Text meterLabel = Text.literal("Mic");
 		context.drawCenteredTextWithShadow(textRenderer, meterLabel, meterX + meterWidth / 2, meterY - 12, 0xFFFFFFFF);
 
-		super.render(context, mouseX, mouseY, delta);
 	}
 
-	@Override
-	public boolean shouldPause() {
-		return false;
-	}
 
-	@Override
-	public void removed() {
-		client.options.getMenuBackgroundBlurriness().setValue(previousMenuBlurriness);
-		super.removed();
-	}
 }

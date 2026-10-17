@@ -70,7 +70,9 @@ public final class ServerNetworkHandler {
 				config.sampleRate(),
 				config.frameDurationMs(),
 				secret,
-				"127.0.0.1"
+				// Empty = "the address you connected to". The server can't reliably know its own public
+				// address, and "127.0.0.1" points remote clients at their own machine.
+				""
 		));
 	}
 

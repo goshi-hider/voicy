@@ -13,7 +13,7 @@ import net.voicechat.api.VoiceChatAPI;
 import java.util.List;
 import java.util.UUID;
 
-public final class PlayerAudioSettingsScreen extends Screen {
+public final class PlayerAudioSettingsScreen extends VoicyScreen {
 
 	private final Screen parent;
 	private final UUID requestedPlayer;
@@ -91,8 +91,7 @@ public final class PlayerAudioSettingsScreen extends Screen {
 	}
 
 	@Override
-	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-		renderBackground(context, mouseX, mouseY, delta);
+	protected void renderPanels(DrawContext context, int mouseX, int mouseY, float delta) {
 		context.fill(width / 2 - 124, 12, width / 2 + 124, 36, 0xDD09121B);
 		context.fill(width / 2 - 124, 12, width / 2 + 124, 14, 0xFF3AD6BE);
 		context.drawTexture(Voicy.id("textures/gui/voice_badge.png"), width / 2 - 114, 16,
@@ -105,13 +104,8 @@ public final class PlayerAudioSettingsScreen extends Screen {
 			context.drawCenteredTextWithShadow(textRenderer,
 					Text.translatable("gui.voicy.player_volume_help"), width / 2, 88, 0xFFB9C7CE);
 		}
-		super.render(context, mouseX, mouseY, delta);
 	}
 
-	@Override
-	public boolean shouldPause() {
-		return false;
-	}
 
 	private record OnlinePlayer(UUID id, String name) {
 	}

@@ -18,6 +18,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class UdpVoiceServer implements AutoCloseable {
 
 	private static final int MAX_PACKET = 2048;
+	/** Client -> server reachability probe: [VPNG][uuid:16][secretLen:4][secret]. */
+	public static final byte[] PROBE_MAGIC = {'V', 'P', 'N', 'G'};
+	/** Server -> client reply to a valid probe. */
+	public static final byte[] ACK_MAGIC = {'V', 'A', 'C', 'K'};
 
 	private final AtomicBoolean running = new AtomicBoolean(false);
 	private DatagramSocket socket;
@@ -72,7 +76,11 @@ public final class UdpVoiceServer implements AutoCloseable {
 		DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 		while (running.get()) {
 			try {
+				packet.setLength(buffer.length);
 				socket.receive(packet);
+				if (handleProbe(packet)) {
+					continue;
+				}
 				VoiceFramePayload frame = decodeAuthenticated(buffer, packet.getLength(), secretProvider);
 				if (frame != null) {
 					consumer.accept(frame.speakerId(), frame);
@@ -83,6 +91,40 @@ public final class UdpVoiceServer implements AutoCloseable {
 				}
 			}
 		}
+	}
+
+	/** Answers a valid reachability probe so the client knows UDP works end-to-end. */
+	private boolean handleProbe(DatagramPacket packet) throws IOException {
+		byte[] data = packet.getData();
+		int length = packet.getLength();
+		if (length < 24 || !startsWith(data, PROBE_MAGIC)) {
+			return false;
+		}
+		ByteBuffer buf = ByteBuffer.wrap(data, 4, length - 4);
+		UUID player = new UUID(buf.getLong(), buf.getLong());
+		int secretLength = buf.getInt();
+		if (secretLength < 0 || secretLength > 4096 || buf.remaining() < secretLength) {
+			return true;
+		}
+		byte[] supplied = new byte[secretLength];
+		buf.get(supplied);
+		byte[] expected = secretProvider.apply(player);
+		if (expected != null && MessageDigest.isEqual(expected, supplied)) {
+			socket.send(new DatagramPacket(ACK_MAGIC, ACK_MAGIC.length, packet.getAddress(), packet.getPort()));
+		}
+		return true;
+	}
+
+	static boolean startsWith(byte[] data, byte[] prefix) {
+		if (data.length < prefix.length) {
+			return false;
+		}
+		for (int i = 0; i < prefix.length; i++) {
+			if (data[i] != prefix[i]) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	public static VoiceFramePayload decodeAuthenticated(byte[] data, int length, Function<UUID, byte[]> secretProvider) {

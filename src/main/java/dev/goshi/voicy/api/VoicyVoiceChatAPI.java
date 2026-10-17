@@ -79,13 +79,23 @@ public final class VoicyVoiceChatAPI implements VoiceChatAPI {
 
 	public static void publishVoiceState(UUID playerId, boolean wasMuted, boolean mutedNow, boolean wasDeafened, boolean deafenedNow) {
 		if (VoiceChatAPIHolder.get() instanceof VoicyVoiceChatAPI api) {
-			api.events.publishState(playerId, wasMuted, mutedNow, wasDeafened, deafenedNow);
+			try {
+				api.events.publishState(playerId, wasMuted, mutedNow, wasDeafened, deafenedNow);
+			} catch (RuntimeException | LinkageError e) {
+				// Event delivery is best-effort: a broken listener or API jar mismatch must never
+				// crash the render thread from a button click.
+				dev.goshi.voicy.Voicy.LOGGER.error("[Voicy] Failed to publish voice state event", e);
+			}
 		}
 	}
 
 	public static void publishTalking(UUID playerId, boolean start) {
 		if (VoiceChatAPIHolder.get() instanceof VoicyVoiceChatAPI api) {
-			api.events.publishTalking(playerId, start);
+			try {
+				api.events.publishTalking(playerId, start);
+			} catch (RuntimeException | LinkageError e) {
+				dev.goshi.voicy.Voicy.LOGGER.error("[Voicy] Failed to publish talking event", e);
+			}
 		}
 	}
 

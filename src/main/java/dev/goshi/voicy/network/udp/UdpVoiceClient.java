@@ -24,6 +24,7 @@ public final class UdpVoiceClient implements AutoCloseable {
 	private byte[] sessionSecret = new byte[0];
 	private Thread readerThread;
 	private VoiceFrameConsumer consumer = frame -> {};
+	private volatile boolean acked;
 
 	@FunctionalInterface
 	public interface VoiceFrameConsumer {
@@ -36,6 +37,7 @@ public final class UdpVoiceClient implements AutoCloseable {
 
 	public void startSession(String username, String host, int port, byte[] secret) {
 		close();
+		acked = false;
 		try {
 			this.username = username == null ? "" : username;
 			this.serverAddress = InetAddress.getByName(host == null || host.isBlank() ? "127.0.0.1" : host);
@@ -56,6 +58,25 @@ public final class UdpVoiceClient implements AutoCloseable {
 		return running.get() && socket != null && !socket.isClosed();
 	}
 
+	/** True once the server answered a probe, i.e. UDP demonstrably reaches it with our secret. */
+	public boolean isAcked() {
+		return acked;
+	}
+
+	public void sendProbe(UUID playerId) throws IOException {
+		if (!isRunning()) {
+			throw new IOException("UDP session is not active");
+		}
+		byte[] magic = UdpVoiceServer.PROBE_MAGIC;
+		ByteBuffer buf = ByteBuffer.allocate(magic.length + 16 + 4 + sessionSecret.length);
+		buf.put(magic);
+		buf.putLong(playerId.getMostSignificantBits());
+		buf.putLong(playerId.getLeastSignificantBits());
+		buf.putInt(sessionSecret.length);
+		buf.put(sessionSecret);
+		socket.send(new DatagramPacket(buf.array(), buf.position(), serverAddress, serverPort));
+	}
+
 	public void sendFrame(VoiceFramePayload frame) throws IOException {
 		if (!isRunning()) {
 			throw new IOException("UDP session is not active");
@@ -73,6 +94,11 @@ public final class UdpVoiceClient implements AutoCloseable {
 			} catch (IOException ignored) {
 				continue;
 			}
+			if (packet.getLength() == UdpVoiceServer.ACK_MAGIC.length
+					&& UdpVoiceServer.startsWith(packet.getData(), UdpVoiceServer.ACK_MAGIC)) {
+				acked = true;
+				continue;
+			}
 			VoiceFramePayload frame = decode(packet.getData(), packet.getLength());
 			if (frame != null) {
 				consumer.accept(frame);
@@ -82,7 +108,7 @@ public final class UdpVoiceClient implements AutoCloseable {
 
 	public static byte[] encode(VoiceFramePayload frame, byte[] secret) {
 		byte[] opus = frame.opusData();
-		ByteBuffer buf = ByteBuffer.allocate(16 + 8 + 4 + 4 + Math.max(1, secret.length) + opus.length);
+		ByteBuffer buf = ByteBuffer.allocate(16 + 8 + 4 + 4 + secret.length + opus.length);
 		buf.putLong(frame.speakerId().getMostSignificantBits());
 		buf.putLong(frame.speakerId().getLeastSignificantBits());
 		buf.putLong(frame.sequence());
