@@ -36,6 +36,28 @@ public interface VoiceChatAPI {
 
 	void registerModSecurityContext(@NotNull Identifier modId);
 
-	record VoiceState(boolean muted, boolean deafened, @Nullable Identifier activeChannel) {
+	final class VoiceState {
+		private final boolean muted;
+		private final boolean deafened;
+		private final Identifier activeChannel;
+
+		public VoiceState(boolean muted, boolean deafened, @Nullable Identifier activeChannel) {
+			this.muted = muted;
+			this.deafened = deafened;
+			this.activeChannel = activeChannel;
+		}
+
+		public boolean muted() {
+			return muted;
+		}
+
+		public boolean deafened() {
+			return deafened;
+		}
+
+		@Nullable
+		public Identifier activeChannel() {
+			return activeChannel;
+		}
 	}
 }
