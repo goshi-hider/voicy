@@ -5,6 +5,7 @@ import dev.goshi.voicy.client.ClientNetworkHandler;
 import dev.goshi.voicy.client.ClientVoiceManager;
 import dev.goshi.voicy.client.VoicyKeyBindings;
 import dev.goshi.voicy.client.group.ClientGroupState;
+import dev.goshi.voicy.client.gui.GroupHud;
 import dev.goshi.voicy.config.VoicyConfig;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -19,6 +20,7 @@ public class VoicyClient implements ClientModInitializer {
 			voiceManager = new ClientVoiceManager(VoicyConfig.INSTANCE);
 			new ClientNetworkHandler(voiceManager).register();
 			VoicyKeyBindings.register(voiceManager);
+			GroupHud.register(voiceManager);
 
 			ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
 				if (voiceManager != null) {

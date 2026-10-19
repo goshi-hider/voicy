@@ -479,6 +479,14 @@ public final class ClientVoiceManager implements AutoCloseable {
 		return Math.min(1.0f, Math.max(0.0f, inputLevel));
 	}
 
+	public boolean isTalking(UUID playerId) {
+		return talkingSources.contains(playerId);
+	}
+
+	public boolean isSelfTalking() {
+		return sendingActive && !selfMuted.get();
+	}
+
 	public void setSelfMuted(boolean muted) {
 		selfMuted.set(muted);
 		sendSelfStateUpdate();
