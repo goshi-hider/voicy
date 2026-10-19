@@ -2,8 +2,7 @@
 
 `net.voicechat.api.VoiceChatAPI`
 
-The root entry point. One instance exists per running game (client or server side,
-wherever Voicy is loaded); all sub-managers below hang off it.
+The root entry point. All sub-managers below hang off it.
 
 ```java
 public interface VoiceChatAPI {
@@ -13,6 +12,7 @@ public interface VoiceChatAPI {
     DeafenManager getDeafenManager();
     VolumeManager getVolumeManager();
     ChannelManager getChannelManager();
+    GroupManager getGroupManager();
     VoiceChatEvents getEvents();
 
     VoiceState getVoiceState(UUID playerId);
@@ -26,6 +26,16 @@ public interface VoiceChatAPI {
 
 Static accessor backed by `VoiceChatAPIHolder`. Returns `null` before Voicy has
 initialized — always null-check, never assume load order.
+
+Currently the instance is only ever constructed on the client (`VoicyClient`'s client
+entrypoint). On a dedicated server `getInstance()` returns `null` permanently, even
+after the world is fully up — there is no server-side construction path yet. If your
+mod runs server-side logic against this API (team assignment, moderation tooling),
+plan around that: it works from client-side mod code against the locally running
+game (including the server half of an integrated/singleplayer world, since that runs
+in the same client process), but not from a headless dedicated server. `GroupManager`
+in particular is often wanted for server automation — see
+[GroupManager](GroupManager.md#availability) before relying on it there.
 
 ## `getVoiceState(UUID playerId)`
 

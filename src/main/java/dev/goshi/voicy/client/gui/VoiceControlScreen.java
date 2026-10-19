@@ -1,6 +1,7 @@
 package dev.goshi.voicy.client.gui;
 
 import dev.goshi.voicy.client.ClientVoiceManager;
+import dev.goshi.voicy.client.group.ClientGroupState;
 import dev.goshi.voicy.config.VoicyConfig;
 import dev.goshi.voicy.Voicy;
 import net.minecraft.client.gui.DrawContext;
@@ -32,9 +33,14 @@ public final class VoiceControlScreen extends VoicyScreen {
 				}
 		).dimensions(cx - 100, y, 200, 20).build());
 
+		int pending = ClientGroupState.pendingCount();
+		addDrawableChild(ButtonWidget.builder(
+				pending > 0 ? Text.translatable("screen.voicy.groups_pending", pending) : Text.translatable("screen.voicy.groups"),
+				button -> MinecraftClient.getInstance().setScreen(new GroupScreen(this)))
+				.dimensions(cx - 14, 13, 68, 20).build());
 		addDrawableChild(ButtonWidget.builder(Text.translatable("screen.voicy.player_audio"),
 				button -> MinecraftClient.getInstance().setScreen(new PlayerAudioSettingsScreen(this)))
-				.dimensions(cx + 68, 13, 52, 20).build());
+				.dimensions(cx + 56, 13, 66, 20).build());
 		y += 28;
 
 		addDrawableChild(ButtonWidget.builder(
@@ -129,7 +135,7 @@ public final class VoiceControlScreen extends VoicyScreen {
 		context.fill(width / 2 - 124, 12, width / 2 + 124, 32, 0x66000000);
 		context.fill(width / 2 - 124, 12, width / 2 + 124, 13, 0xFF2A2A2A);
 		context.drawTexture(Voicy.id("textures/gui/voice_badge.png"), width / 2 - 116, 13, 0.0f, 0.0f, 20, 20, 128, 128);
-		context.drawCenteredTextWithShadow(textRenderer, title, width / 2 - 5, 16, 0xFFFFFFFF);
+		context.drawTextWithShadow(textRenderer, title, width / 2 - 92, 18, 0xFFFFFFFF);
 
 		// Vertical meter, right edge of the screen, fills bottom-to-top with input level.
 		int meterWidth = 16;

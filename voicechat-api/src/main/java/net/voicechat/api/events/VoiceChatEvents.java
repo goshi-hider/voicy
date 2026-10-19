@@ -21,6 +21,10 @@ public interface VoiceChatEvents {
 
 	void onPlayerStopTalking(@NotNull Consumer<PlayerTalkingEvent> listener);
 
+	void onPlayerJoinedGroup(@NotNull Consumer<PlayerJoinedGroupEvent> listener);
+
+	void onPlayerLeftGroup(@NotNull Consumer<PlayerLeftGroupEvent> listener);
+
 	void unregisterListener(@NotNull Consumer<?> listener);
 
 	record PlayerMuteEvent(@NotNull UUID playerId, @NotNull MuteReason reason, @NotNull Identifier sourceMod) {
@@ -36,5 +40,11 @@ public interface VoiceChatEvents {
 	}
 
 	record PlayerTalkingEvent(@NotNull UUID playerId) {
+	}
+
+	record PlayerJoinedGroupEvent(@NotNull UUID playerId, @NotNull UUID groupId, @NotNull String groupName) {
+	}
+
+	record PlayerLeftGroupEvent(@NotNull UUID playerId, @NotNull UUID groupId, @NotNull String groupName) {
 	}
 }

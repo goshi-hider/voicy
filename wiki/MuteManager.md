@@ -19,10 +19,14 @@ public interface MuteManager {
 
 ## `requestMute` / `requestUnmute`
 
-Returns `false` if the request was rejected (e.g. target already muted by a
-higher-priority source — see `MuteReason` ordering below). `sourceMod` is recorded so
-`getMuteSource` can later report who's responsible, and so another mod's
-`requestUnmute` targeting the same player doesn't silently override an admin mute.
+These are fire-and-forget: the call is one-way client→server networking with no
+acknowledgement. The return value only tells you whether the request packet could be
+sent (e.g. `false` if you're not connected to a server) — it does **not** tell you
+whether the server actually applied the mute. A cross-player request can still be
+silently rejected server-side (see [Getting Started](Getting-Started.md#registering-a-security-context))
+after `requestMute` has already returned `true`. There is no priority system between
+mute sources — whichever request lands last wins, regardless of `MuteReason` or who
+sent it.
 
 ```java
 Identifier me = Identifier.of("antigrief", "voice_control");
@@ -35,15 +39,19 @@ api.getMuteManager().requestMute(offenderUuid, me, MuteReason.MOD_EFFECT);
 public enum MuteReason { ADMIN, MOD_EFFECT, PLAYER_SELF, API, SECURITY_VIOLATION }
 ```
 
-Use `ADMIN` for staff-issued mutes, `MOD_EFFECT` for gameplay effects (traps, items,
-minigame states), `API` for generic third-party integrations, and
-`SECURITY_VIOLATION` for mutes issued by Voicy's own anti-spoof/anti-abuse layer —
-treat that one as informational, Voicy manages its own lifecycle for it.
+The interface accepts a reason, but in the current build it isn't transmitted over
+the network or recorded anywhere — passing any value is equivalent to any other. If
+you're listening via [`VoiceChatEvents`](VoiceChatEvents.md), `PlayerMuteEvent.reason()`
+is always `API` right now, no matter what reason the mute was requested with or
+whether it came from a player self-muting. Pick whichever value reads clearest in
+your own call sites; don't build branching logic around it yet.
 
 ## `isMuted` / `getMuteSource`
 
-Read-only, safe to poll every tick. `getMuteSource` is empty when the player isn't
-muted, or when muted via `setSelfMuted` (self-mutes have no external source).
+Read-only, safe to poll every tick. `getMuteSource` always returns empty in the
+current build — source attribution isn't wired up yet — so don't use it to decide
+whether it's safe to unmute a player; an unrelated mod's `requestUnmute` will clear
+your mute without any way to detect that in advance.
 
 ## `setSelfMuted` / `isSelfMuted`
 

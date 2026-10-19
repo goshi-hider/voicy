@@ -3,6 +3,7 @@ package dev.goshi.voicy.network.router;
 import dev.goshi.voicy.Voicy;
 import dev.goshi.voicy.SpeakerManager;
 import dev.goshi.voicy.config.VoicyConfig;
+import dev.goshi.voicy.group.GroupManager;
 import dev.goshi.voicy.network.payload.VoiceFramePayload;
 import dev.goshi.voicy.security.PlayerVoiceState;
 import dev.goshi.voicy.security.VoiceSecurityService;
@@ -23,6 +24,12 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class VoiceRouter {
+
+	/**
+	 * Marks a frame as group voice. Group frames reach members at any distance, so the radius is meaningless;
+	 * a negative value tells the receiving client to play it in-head instead of positioning it on the sender.
+	 */
+	public static final float GROUP_FRAME_RADIUS = -1.0f;
 
 	private final VoiceSecurityService securityService;
 	private final VoicyConfig config;
@@ -67,10 +74,16 @@ public final class VoiceRouter {
 				: Voicy.getInstance().channelManager().getChannel(activeChannelId).orElse(null);
 		boolean groupRoute = activeChannel != null
 				&& activeChannel.type() != ChannelManager.ChannelType.PROXIMITY;
-		if ((!groupRoute && maxRadius <= 0.0d) || frame.opusData().length == 0) {
+		GroupManager.Group talkGroup = Voicy.getInstance().groupManager().talkGroup(senderId);
+		if (frame.opusData().length == 0 || (talkGroup == null && !groupRoute && maxRadius <= 0.0d)) {
 			return;
 		}
 		recordRecentFrame(senderId, frame);
+
+		if (talkGroup != null) {
+			routeToGroup(sender, frame, talkGroup);
+			return;
+		}
 
 		for (ServerPlayerEntity recipient : PlayerLookup.world(world)) {
 			if (recipient.getUuid().equals(senderId)) {
@@ -96,6 +109,26 @@ public final class VoiceRouter {
 			ServerPlayNetworking.send(recipient, frame);
 		}
 
+		relayToSpeakers(sender, frame);
+	}
+
+	/**
+	 * The sender talks to their group only: members hear it wherever they are, nobody else does, and only
+	 * speakers that belong to the same group repeat it.
+	 */
+	private void routeToGroup(ServerPlayerEntity sender, VoiceFramePayload frame, GroupManager.Group group) {
+		VoiceFramePayload groupFrame = new VoiceFramePayload(
+				frame.speakerId(), frame.sequence(), GROUP_FRAME_RADIUS, frame.opusData());
+		for (UUID memberId : group.memberIds()) {
+			if (memberId.equals(sender.getUuid())) {
+				continue;
+			}
+			ServerPlayerEntity member = sender.server.getPlayerManager().getPlayer(memberId);
+			if (member == null || securityService.getState(memberId).isDeafened()) {
+				continue;
+			}
+			ServerPlayNetworking.send(member, groupFrame);
+		}
 		relayToSpeakers(sender, frame);
 	}
 
@@ -193,11 +226,23 @@ public final class VoiceRouter {
 		ServerWorld world = sender.getServerWorld();
 		Vec3d senderPos = sender.getPos();
 		double maxRadius = Math.min(Math.max(0.0d, frame.distanceRadius()), config.proximityRadius());
+		GroupManager groups = Voicy.getInstance().groupManager();
+		GroupManager.Group talkGroup = groups.talkGroup(sender.getUuid());
 		for (var speakerEntry : Voicy.getInstance().speakerManager().speakers().entrySet()) {
 			int speakerId = speakerEntry.getKey();
 			var speaker = speakerEntry.getValue();
+			UUID speakerGroup = groups.speakerGroup(speakerId);
+			if (talkGroup != null) {
+				// Group voice: only speakers that joined this exact group repeat it, from any distance.
+				if (!talkGroup.id().equals(speakerGroup)) {
+					continue;
+				}
+			} else if (speakerGroup != null) {
+				// A speaker that belongs to a group never repeats public (proximity) voice.
+				continue;
+			}
 			if (!speaker.dimension().equals(world.getRegistryKey())
-					|| speaker.position().distanceTo(senderPos) > maxRadius) {
+					|| (talkGroup == null && speaker.position().distanceTo(senderPos) > maxRadius)) {
 				continue;
 			}
 			VoiceFramePayload relay = new VoiceFramePayload(
@@ -214,7 +259,12 @@ public final class VoiceRouter {
 				if (recipientState.isDeafened()) {
 					continue;
 				}
-				if (!securityService.shareChannel(sender.getUuid(), recipient.getUuid())) {
+				if (talkGroup != null) {
+					// Only group members hear what a speaker repeats from the group.
+					if (!talkGroup.isMember(recipient.getUuid())) {
+						continue;
+					}
+				} else if (!securityService.shareChannel(sender.getUuid(), recipient.getUuid())) {
 					continue;
 				}
 				// Guarantee the recipient knows this speaker's position before audio for it

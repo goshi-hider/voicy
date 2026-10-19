@@ -14,7 +14,13 @@ Managed server-side by `SpeakerManager` (`dev.goshi.voicy.SpeakerManager`).
 /speaker show <speaker_id>      spawns a particle outline at the speaker's position
 /speaker list
 /speaker test                   replays the caller's last 5s of voice through nearby speakers
+/speaker group join <group_name> [speaker_id]   see "Group-assigned speakers" below
+/speaker group leave [speaker_id]
+/speaker group list
 ```
+
+`speaker_id` is optional on the `group` subcommands — omit it to target whichever
+speaker is nearest the command's source.
 
 Speaker state (position, dimension) persists in the world's `PersistentState` under
 `voicy_speakers` — survives server restarts, synced to each client on join and on any
@@ -43,7 +49,23 @@ position, since they have no entity).
 Any `VoiceFramePayload` the router accepts from a player is relayed to every speaker
 within that frame's radius, in the same world, as part of normal `VoiceRouter.route()`
 handling — no separate opt-in needed. Nearby listeners of the speaker then receive it
-as if the speaker itself were talking.
+as if the speaker itself were talking. This is the behavior for a speaker that isn't
+assigned to a [group](GroupManager.md) and a player who isn't talking to their group
+only — see the next section for how group assignment changes it.
+
+## Group-assigned speakers
+
+`/speaker group join <group_name> [speaker_id]` puts a speaker into one of the groups
+from [`GroupManager`](GroupManager.md). This changes relay behavior, not just
+cosmetics: a speaker assigned to a group **only** repeats voice from members talking
+to that exact group with talk-to-group-only enabled, at any distance within the
+speaker's radius — it stops repeating ordinary proximity voice entirely, from anyone,
+group member or not. Symmetrically, a speaker with no group assignment never repeats
+a player who has talk-to-group-only on, even if that player is standing right next to
+it. `/speaker group leave [speaker_id]` reverts a speaker to normal (repeats everyone
+in range, group-restricted or not). `/speaker group list` shows current assignments.
+Use this to test a group's own speaker setup (an in-world "radio" exclusive to one
+team, say) in isolation from general-purpose relays.
 
 ## `/speaker test` replay
 

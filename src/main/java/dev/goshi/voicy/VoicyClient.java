@@ -4,6 +4,7 @@ import dev.goshi.voicy.api.VoicyVoiceChatAPI;
 import dev.goshi.voicy.client.ClientNetworkHandler;
 import dev.goshi.voicy.client.ClientVoiceManager;
 import dev.goshi.voicy.client.VoicyKeyBindings;
+import dev.goshi.voicy.client.group.ClientGroupState;
 import dev.goshi.voicy.config.VoicyConfig;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -25,6 +26,7 @@ public class VoicyClient implements ClientModInitializer {
 				}
 			});
 			ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+				ClientGroupState.reset();
 				if (voiceManager != null) {
 					voiceManager.stopCapture();
 					voiceManager.closeTransport();

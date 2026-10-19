@@ -4,6 +4,8 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import dev.goshi.voicy.channel.ServerChannelManager;
 import dev.goshi.voicy.config.VoicyConfig;
+import dev.goshi.voicy.group.GroupManager;
+import dev.goshi.voicy.group.GroupNetwork;
 import dev.goshi.voicy.network.VoicyNetworking;
 import dev.goshi.voicy.network.router.VoiceRouter;
 import dev.goshi.voicy.network.server.ServerNetworkHandler;
@@ -11,8 +13,10 @@ import dev.goshi.voicy.network.udp.UdpVoiceServer;
 import dev.goshi.voicy.security.VoiceSecurityService;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.command.CommandSource;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.CommandManager;
+import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -31,6 +35,8 @@ public class Voicy implements ModInitializer {
     private UdpVoiceServer udpServer;
     private VoiceRouter router;
     private SpeakerManager speakerManager;
+    private GroupManager groupManager;
+    private GroupNetwork groupNetwork;
     private volatile MinecraftServer runningServer;
 
     @Override
@@ -45,6 +51,8 @@ public class Voicy implements ModInitializer {
         channelManager.setActiveChannelListener(securityService::setActiveChannel);
         udpServer = new UdpVoiceServer();
         speakerManager = new SpeakerManager();
+        groupManager = new GroupManager();
+        groupNetwork = new GroupNetwork(groupManager);
 		udpServer.setSecretProvider(securityService::getSessionSecret);
 
         VoiceRouter router = new VoiceRouter(securityService, config);
@@ -97,6 +105,7 @@ public class Voicy implements ModInitializer {
                                 return 0;
                             }
                             router.forgetSpeaker(id);
+                            groupManager.forgetSpeaker(id);
                             if (runningServer != null) {
                                 speakerManager.syncToPlayers(runningServer);
                             }
@@ -161,11 +170,14 @@ public class Voicy implements ModInitializer {
                     context.getSource().sendFeedback(() -> Text.literal("Replayed " + replayed + " voice frames through nearby speakers."), false);
                     return 1;
                 }));
+            speakerCommand.then(buildSpeakerGroupCommand());
             dispatcher.register(speakerCommand);
         });
 
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             runningServer = server;
+            // Groups only live as long as the world is running (the integrated server restarts in the same JVM).
+            groupManager.clear();
             speakerManager.bind(server.getOverworld());
             speakerManager.syncToPlayers(server);
             int port = server.getServerPort();
@@ -178,10 +190,102 @@ public class Voicy implements ModInitializer {
 
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             runningServer = null;
+            groupManager.clear();
             udpServer.close();
         });
 
         LOGGER.info("[Voicy] Server voice pipeline initialized (radius={} blocks)", config.proximityRadius());
+    }
+
+    /**
+     * {@code /speaker group join|leave|list}: puts a speaker into a voice group so it can be tested alone.
+     * A speaker inside a group only repeats voices of members who are talking to that group; a speaker outside
+     * every group never repeats a player who is talking to their group only.
+     */
+    private com.mojang.brigadier.builder.LiteralArgumentBuilder<ServerCommandSource> buildSpeakerGroupCommand() {
+        var group = CommandManager.literal("group");
+        group.then(CommandManager.literal("join")
+            .then(CommandManager.argument("group_name", StringArgumentType.word())
+                .suggests((context, builder) -> CommandSource.suggestMatching(groupManager.groupNames(), builder))
+                .executes(context -> joinSpeakerToGroup(context.getSource(),
+                        StringArgumentType.getString(context, "group_name"), -1))
+                .then(CommandManager.argument("speaker_id", IntegerArgumentType.integer(1))
+                    .executes(context -> joinSpeakerToGroup(context.getSource(),
+                            StringArgumentType.getString(context, "group_name"),
+                            IntegerArgumentType.getInteger(context, "speaker_id"))))));
+        group.then(CommandManager.literal("leave")
+            .executes(context -> removeSpeakerFromGroup(context.getSource(), -1))
+            .then(CommandManager.argument("speaker_id", IntegerArgumentType.integer(1))
+                .executes(context -> removeSpeakerFromGroup(context.getSource(),
+                        IntegerArgumentType.getInteger(context, "speaker_id")))));
+        group.then(CommandManager.literal("list")
+            .executes(context -> {
+                var assignments = groupManager.speakerGroups();
+                if (assignments.isEmpty()) {
+                    context.getSource().sendFeedback(() -> Text.literal("No speaker is in a group."), false);
+                    return 1;
+                }
+                StringBuilder builder = new StringBuilder("Speakers in groups:");
+                for (var entry : assignments.entrySet()) {
+                    GroupManager.Group assigned = groupManager.groupById(entry.getValue());
+                    builder.append("\n- speaker ").append(entry.getKey()).append(" -> ")
+                            .append(assigned == null ? "(group gone)" : assigned.name());
+                }
+                context.getSource().sendFeedback(() -> Text.literal(builder.toString()), false);
+                return 1;
+            }));
+        return group;
+    }
+
+    private int joinSpeakerToGroup(ServerCommandSource source, String groupName, int requestedSpeakerId) {
+        GroupManager.Group group = groupManager.findByName(groupName);
+        if (group == null) {
+            source.sendError(Text.literal("No group named '" + groupName
+                    + "'. Create it first from the Groups button in the Voicy menu (default key: V)."));
+            return 0;
+        }
+        int speakerId = requestedSpeakerId > 0 ? requestedSpeakerId : nearestSpeakerId(source);
+        if (speakerId < 0 || speakerManager.lookupSpeaker(speakerId) == null) {
+            source.sendError(Text.literal(requestedSpeakerId > 0
+                    ? "Speaker not found: " + requestedSpeakerId
+                    : "There is no speaker in this dimension. Create one with /speaker create ~ ~ ~"));
+            return 0;
+        }
+        groupManager.joinSpeaker(speakerId, group.id());
+        source.sendFeedback(() -> Text.literal("Speaker " + speakerId + " is now in group '" + group.name()
+                + "' and repeats members who talk to the group."), false);
+        return 1;
+    }
+
+    private int removeSpeakerFromGroup(ServerCommandSource source, int requestedSpeakerId) {
+        int speakerId = requestedSpeakerId > 0 ? requestedSpeakerId : nearestSpeakerId(source);
+        if (speakerId < 0 || !groupManager.leaveSpeaker(speakerId)) {
+            source.sendError(Text.literal(requestedSpeakerId > 0
+                    ? "Speaker " + requestedSpeakerId + " is not in a group."
+                    : "The nearest speaker is not in a group."));
+            return 0;
+        }
+        source.sendFeedback(() -> Text.literal("Speaker " + speakerId + " left its group."), false);
+        return 1;
+    }
+
+    /** The speaker closest to whoever ran the command, in the same dimension; -1 if there is none. */
+    private int nearestSpeakerId(ServerCommandSource source) {
+        Vec3d origin = source.getPosition();
+        ServerWorld world = source.getWorld();
+        int bestId = -1;
+        double bestDistance = Double.MAX_VALUE;
+        for (var entry : speakerManager.speakers().entrySet()) {
+            if (!entry.getValue().dimension().equals(world.getRegistryKey())) {
+                continue;
+            }
+            double distance = entry.getValue().position().squaredDistanceTo(origin);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                bestId = entry.getKey();
+            }
+        }
+        return bestId;
     }
 
     private double parseCoordinate(String token, double origin) {
@@ -223,6 +327,14 @@ public class Voicy implements ModInitializer {
 
     public SpeakerManager speakerManager() {
         return speakerManager;
+    }
+
+    public GroupManager groupManager() {
+        return groupManager;
+    }
+
+    public GroupNetwork groupNetwork() {
+        return groupNetwork;
     }
 
     public ServerChannelManager channelManager() {

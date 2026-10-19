@@ -66,3 +66,14 @@ listening through it.
 
 Deleting a channel (`deleteChannel`) force-clears every member's active-channel state
 back to `null` (they drop to proximity voice, not silence).
+
+## Interaction with GroupManager
+
+[`GroupManager`](GroupManager.md)'s talk-to-group-only mode is checked by the router
+*before* channel membership, and wins outright: if a player has that enabled, their
+voice routes to their group only — any channel they've joined through this API is
+ignored entirely for that player while talk-to-group-only stays on, with no error or
+signal that it happened. This can only be checked for the local player right now (see
+[GroupManager availability](GroupManager.md#availability)), so if you're mixing the
+two systems, be aware a player can quietly opt out of your channel routing this way
+with nothing on your end able to detect it.

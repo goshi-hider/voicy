@@ -18,9 +18,12 @@ public interface DeafenManager {
 }
 ```
 
-There's no `DeafenReason` enum — deafen has no priority/severity tiers the way mute
-does via `MuteReason`. `sourceMod` is still tracked so `requestUndeafen` from an
-unrelated mod doesn't clear a deafen your mod imposed.
+There's no `DeafenReason` enum. Same caveats as [MuteManager](MuteManager.md#requestmute--requestunmute)
+apply here: `requestDeafen`/`requestUndeafen` are fire-and-forget (the return value
+reflects whether the packet could be sent, not whether the server applied it),
+`sourceMod` isn't tracked anywhere for conflict resolution, and `getDeafenSource`
+always returns empty — an unrelated mod's `requestUndeafen` will clear a deafen your
+mod imposed, with no attribution to tell you it happened.
 
 Usage is identical in shape to `MuteManager`:
 

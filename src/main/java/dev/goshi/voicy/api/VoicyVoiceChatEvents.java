@@ -15,6 +15,8 @@ final class VoicyVoiceChatEvents implements VoiceChatEvents {
 	private final CopyOnWriteArrayList<Consumer<PlayerUndeafenEvent>> undeafened = new CopyOnWriteArrayList<>();
 	private final CopyOnWriteArrayList<Consumer<PlayerTalkingEvent>> talking = new CopyOnWriteArrayList<>();
 	private final CopyOnWriteArrayList<Consumer<PlayerTalkingEvent>> stoppedTalking = new CopyOnWriteArrayList<>();
+	private final CopyOnWriteArrayList<Consumer<PlayerJoinedGroupEvent>> groupJoined = new CopyOnWriteArrayList<>();
+	private final CopyOnWriteArrayList<Consumer<PlayerLeftGroupEvent>> groupLeft = new CopyOnWriteArrayList<>();
 
 	@Override
 	public void onPlayerMuted(Consumer<PlayerMuteEvent> listener) {
@@ -47,6 +49,16 @@ final class VoicyVoiceChatEvents implements VoiceChatEvents {
 	}
 
 	@Override
+	public void onPlayerJoinedGroup(Consumer<PlayerJoinedGroupEvent> listener) {
+		groupJoined.add(listener);
+	}
+
+	@Override
+	public void onPlayerLeftGroup(Consumer<PlayerLeftGroupEvent> listener) {
+		groupLeft.add(listener);
+	}
+
+	@Override
 	public void unregisterListener(Consumer<?> listener) {
 		muted.remove(listener);
 		unmuted.remove(listener);
@@ -54,6 +66,8 @@ final class VoicyVoiceChatEvents implements VoiceChatEvents {
 		undeafened.remove(listener);
 		talking.remove(listener);
 		stoppedTalking.remove(listener);
+		groupJoined.remove(listener);
+		groupLeft.remove(listener);
 	}
 
 	void publishState(UUID playerId, boolean wasMuted, boolean mutedNow, boolean wasDeafened, boolean deafenedNow) {
@@ -77,6 +91,14 @@ final class VoicyVoiceChatEvents implements VoiceChatEvents {
 	void publishTalking(UUID playerId, boolean start) {
 		PlayerTalkingEvent event = new PlayerTalkingEvent(playerId);
 		publish(start ? talking : stoppedTalking, event);
+	}
+
+	void publishGroupJoin(UUID playerId, UUID groupId, String groupName) {
+		publish(groupJoined, new PlayerJoinedGroupEvent(playerId, groupId, groupName));
+	}
+
+	void publishGroupLeave(UUID playerId, UUID groupId, String groupName) {
+		publish(groupLeft, new PlayerLeftGroupEvent(playerId, groupId, groupName));
 	}
 
 	private static <T> void publish(Iterable<Consumer<T>> listeners, T event) {

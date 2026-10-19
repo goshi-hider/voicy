@@ -5,6 +5,7 @@ import net.voicechat.api.audio.VolumeManager;
 import net.voicechat.api.channel.ChannelManager;
 import net.voicechat.api.deafen.DeafenManager;
 import net.voicechat.api.events.VoiceChatEvents;
+import net.voicechat.api.group.GroupManager;
 import net.voicechat.api.mute.MuteManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -27,6 +28,9 @@ public interface VoiceChatAPI {
 
 	@NotNull
 	ChannelManager getChannelManager();
+
+	@NotNull
+	GroupManager getGroupManager();
 
 	@NotNull
 	VoiceChatEvents getEvents();

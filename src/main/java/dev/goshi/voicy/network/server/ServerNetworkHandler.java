@@ -2,6 +2,7 @@ package dev.goshi.voicy.network.server;
 
 import dev.goshi.voicy.config.VoicyConfig;
 import dev.goshi.voicy.network.payload.ApiCommandPayload;
+import dev.goshi.voicy.network.payload.GroupActionPayload;
 import dev.goshi.voicy.network.payload.HandshakePayload;
 import dev.goshi.voicy.network.payload.StateSyncPayload;
 import dev.goshi.voicy.network.payload.VoiceFramePayload;
@@ -45,16 +46,24 @@ public final class ServerNetworkHandler {
 			context.server().execute(() -> sendHandshake(context.player()));
 		});
 
+		ServerPlayNetworking.registerGlobalReceiver(GroupActionPayload.TYPE, (payload, context) -> {
+			context.server().execute(() ->
+					dev.goshi.voicy.Voicy.getInstance().groupNetwork().handle(context.player(), payload));
+		});
+
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			ServerPlayerEntity player = handler.player;
 			securityService.onPlayerJoin(player.getUuid());
 			sendHandshake(player);
 			broadcastState(player);
 			dev.goshi.voicy.Voicy.getInstance().speakerManager().syncToPlayer(player);
+			dev.goshi.voicy.Voicy.getInstance().groupNetwork().onJoin(player);
 		});
 
-		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
-				securityService.onPlayerLeave(handler.player.getUuid()));
+		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+			securityService.onPlayerLeave(handler.player.getUuid());
+			dev.goshi.voicy.Voicy.getInstance().groupNetwork().onDisconnect(handler.player);
+		});
 	}
 
 	private void sendHandshake(ServerPlayerEntity player) {

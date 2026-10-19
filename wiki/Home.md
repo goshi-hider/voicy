@@ -10,7 +10,8 @@ Voicy is a proximity + spatial voice chat mod for Fabric 1.21. This wiki covers 
 - [DeafenManager](DeafenManager.md) — deafening players
 - [VolumeManager](VolumeManager.md) — per-player/master volume and audio filters
 - [ChannelManager](ChannelManager.md) — proximity/group/private voice channels
-- [VoiceChatEvents](VoiceChatEvents.md) — mute/deafen/talking listeners
+- [GroupManager](GroupManager.md) — player-named groups: invites, join requests, name colors, talk-to-group-only
+- [VoiceChatEvents](VoiceChatEvents.md) — mute/deafen/talking/group listeners
 - [VoiceChatConfigView](VoiceChatConfigView.md) — read-only live config
 - [Speakers](Speakers.md) — in-world speaker blocks, `/speaker` commands, replay
 - [Transport & Packets](Transport.md) — payload types, UDP fallback, handshake

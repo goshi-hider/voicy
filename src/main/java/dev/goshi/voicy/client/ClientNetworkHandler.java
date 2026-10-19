@@ -1,5 +1,9 @@
 package dev.goshi.voicy.client;
 
+import dev.goshi.voicy.client.group.ClientGroupState;
+import dev.goshi.voicy.network.payload.GroupDirectoryPayload;
+import dev.goshi.voicy.network.payload.GroupNotifyPayload;
+import dev.goshi.voicy.network.payload.GroupStatePayload;
 import dev.goshi.voicy.network.payload.HandshakePayload;
 import dev.goshi.voicy.network.payload.SpeakerSyncPayload;
 import dev.goshi.voicy.network.payload.StateSyncPayload;
@@ -28,6 +32,15 @@ public final class ClientNetworkHandler {
 
 		ClientPlayNetworking.registerGlobalReceiver(SpeakerSyncPayload.TYPE, (payload, context) ->
 				context.client().execute(() -> voiceManager.onSpeakerSync(payload)));
+
+		ClientPlayNetworking.registerGlobalReceiver(GroupDirectoryPayload.TYPE, (payload, context) ->
+				context.client().execute(() -> ClientGroupState.applyDirectory(payload)));
+
+		ClientPlayNetworking.registerGlobalReceiver(GroupStatePayload.TYPE, (payload, context) ->
+				context.client().execute(() -> ClientGroupState.applyState(payload)));
+
+		ClientPlayNetworking.registerGlobalReceiver(GroupNotifyPayload.TYPE, (payload, context) ->
+				context.client().execute(() -> ClientGroupState.showNotification(context.client(), payload)));
 
 		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
 				ClientPlayNetworking.send(new HandshakePayload(

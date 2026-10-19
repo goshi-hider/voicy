@@ -1,112 +1,211 @@
 package dev.goshi.voicy.client.gui;
 
-import dev.goshi.voicy.Voicy;
+import dev.goshi.voicy.client.group.ClientGroupState;
+import dev.goshi.voicy.network.payload.GroupDirectoryPayload.GroupInfo;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.Element;
+import net.minecraft.client.gui.Selectable;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.ElementListWidget;
 import net.minecraft.client.gui.widget.SliderWidget;
+import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.MathHelper;
 import net.voicechat.api.VoiceChatAPI;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * The Players tab: everybody online with a volume slider each. The ">" button opens that player's page
+ * (volume, plus invite / join for groups).
+ */
 public final class PlayerAudioSettingsScreen extends VoicyScreen {
 
+	private static final int ROW_HEIGHT = 32;
+
 	private final Screen parent;
-	private final UUID requestedPlayer;
-	private List<OnlinePlayer> players = List.of();
+	private int seenVersion;
 
 	public PlayerAudioSettingsScreen(Screen parent) {
-		this(parent, null);
-	}
-
-	private PlayerAudioSettingsScreen(Screen parent, UUID requestedPlayer) {
 		super(Text.translatable("screen.voicy.player_audio"));
 		this.parent = parent;
-		this.requestedPlayer = requestedPlayer;
 	}
 
 	@Override
 	protected void init() {
-		MinecraftClient client = MinecraftClient.getInstance();
-		if (client.world != null && client.player != null) {
-			players = client.world.getPlayers().stream()
-					.filter(player -> !player.getUuid().equals(client.player.getUuid()))
-					.map(player -> new OnlinePlayer(player.getUuid(), player.getGameProfile().getName()))
-					.toList();
-		} else {
-			players = List.of();
-		}
-
-		int centerX = width / 2;
+		seenVersion = ClientGroupState.version();
+		PlayerList list = new PlayerList(client, width, height - 32 - 36, 32);
+		list.load(this);
+		addDrawableChild(list);
 		addDrawableChild(ButtonWidget.builder(Text.translatable("gui.back"), button -> client.setScreen(parent))
-				.dimensions(centerX - 100, height - 34, 200, 20).build());
+				.dimensions(width / 2 - 100, height - 28, 200, 20).build());
+	}
 
-		if (players.isEmpty()) {
-			return;
+	@Override
+	public void tick() {
+		if (seenVersion != ClientGroupState.version()) {
+			clearAndInit();
 		}
-
-		int selectedIndex = 0;
-		for (int index = 0; index < players.size(); index++) {
-			if (players.get(index).id().equals(requestedPlayer)) {
-				selectedIndex = index;
-				break;
-			}
-		}
-		OnlinePlayer selected = players.get(selectedIndex);
-		int nextIndex = (selectedIndex + 1) % players.size();
-		addDrawableChild(ButtonWidget.builder(Text.literal(selected.name() + "  >"), button ->
-				client.setScreen(new PlayerAudioSettingsScreen(parent, players.get(nextIndex).id())))
-				.dimensions(centerX - 100, 62, 200, 20).build());
-
-		VoiceChatAPI api = VoiceChatAPI.getInstance();
-		float initialVolume = api == null ? 1.0f : api.getVolumeManager().getPlayerVolume(selected.id());
-		addDrawableChild(new SliderWidget(centerX - 100, 100, 200, 20,
-				Text.translatable("gui.voicy.player_volume", String.format("%.0f%%", initialVolume * 100)),
-				MathHelper.clamp(initialVolume / 2.0, 0.0, 1.0)) {
-			@Override
-			protected void updateMessage() {
-				setMessage(Text.translatable("gui.voicy.player_volume", String.format("%.0f%%", this.value * 200.0)));
-			}
-
-			@Override
-			protected void applyValue() {
-				VoiceChatAPI currentApi = VoiceChatAPI.getInstance();
-				if (currentApi != null) {
-					currentApi.getVolumeManager().setPlayerVolume(selected.id(), (float) (this.value * 2.0));
-				}
-			}
-		});
-
-		addDrawableChild(ButtonWidget.builder(Text.translatable("gui.voicy.reset_player_volume"), button -> {
-			VoiceChatAPI currentApi = VoiceChatAPI.getInstance();
-			if (currentApi != null) {
-				currentApi.getVolumeManager().setPlayerVolume(selected.id(), 1.0f);
-			}
-			client.setScreen(new PlayerAudioSettingsScreen(parent, selected.id()));
-		}).dimensions(centerX - 100, 132, 200, 20).build());
 	}
 
 	@Override
 	protected void renderPanels(DrawContext context, int mouseX, int mouseY, float delta) {
-		context.fill(width / 2 - 124, 12, width / 2 + 124, 36, 0xDD09121B);
-		context.fill(width / 2 - 124, 12, width / 2 + 124, 14, 0xFF3AD6BE);
-		context.drawTexture(Voicy.id("textures/gui/voice_badge.png"), width / 2 - 114, 16,
-				0.0f, 0.0f, 18, 18, 128, 128);
-		context.drawCenteredTextWithShadow(textRenderer, title, width / 2 + 10, 21, 0xFFEAF6F8);
-		if (players.isEmpty()) {
-			context.drawCenteredTextWithShadow(textRenderer,
-					Text.translatable("gui.voicy.no_other_players"), width / 2, height / 2 - 4, 0xFFB9C7CE);
-		} else {
-			context.drawCenteredTextWithShadow(textRenderer,
-					Text.translatable("gui.voicy.player_volume_help"), width / 2, 88, 0xFFB9C7CE);
+		context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 12, 0xFFFFFFFF);
+	}
+
+	private static final class PlayerList extends ElementListWidget<PlayerList.Row> {
+
+		PlayerList(MinecraftClient client, int width, int height, int top) {
+			super(client, width, height, top, ROW_HEIGHT);
+		}
+
+		void load(PlayerAudioSettingsScreen screen) {
+			List<PlayerListEntry> players = new ArrayList<>();
+			if (client.getNetworkHandler() != null && client.player != null) {
+				for (PlayerListEntry entry : client.getNetworkHandler().getPlayerList()) {
+					if (!entry.getProfile().getId().equals(client.player.getUuid())) {
+						players.add(entry);
+					}
+				}
+			}
+			players.sort(Comparator.comparing(entry -> entry.getProfile().getName().toLowerCase()));
+			if (players.isEmpty()) {
+				addEntry(new MessageRow(Text.translatable("gui.voicy.no_other_players")));
+				return;
+			}
+			for (PlayerListEntry entry : players) {
+				addEntry(new PlayerRow(screen, entry.getProfile().getId(), entry.getProfile().getName()));
+			}
+		}
+
+		@Override
+		public int getRowWidth() {
+			return Math.min(width - 40, 320);
+		}
+
+		abstract static class Row extends ElementListWidget.Entry<Row> {
+		}
+
+		static final class MessageRow extends Row {
+			private final Text message;
+
+			MessageRow(Text message) {
+				this.message = message;
+			}
+
+			@Override
+			public void render(DrawContext context, int index, int y, int x, int entryWidth, int entryHeight,
+							   int mouseX, int mouseY, boolean hovered, float delta) {
+				var font = MinecraftClient.getInstance().textRenderer;
+				context.drawCenteredTextWithShadow(font, message, x + entryWidth / 2, y + 12, 0xFFAAAAAA);
+			}
+
+			@Override
+			public List<? extends Element> children() {
+				return List.of();
+			}
+
+			@Override
+			public List<? extends Selectable> selectableChildren() {
+				return List.of();
+			}
+		}
+
+		static final class PlayerRow extends Row {
+			private final UUID id;
+			private final String name;
+			private final SliderWidget volume;
+			private final ButtonWidget details;
+
+			PlayerRow(PlayerAudioSettingsScreen screen, UUID id, String name) {
+				this.id = id;
+				this.name = name;
+				VoiceChatAPI api = VoiceChatAPI.getInstance();
+				float initial = api == null ? 1.0f : api.getVolumeManager().getPlayerVolume(id);
+				this.volume = new VolumeSlider(0, 0, 100, 20, id, initial);
+				this.details = ButtonWidget.builder(Text.literal(">"),
+								button -> MinecraftClient.getInstance().setScreen(new PlayerDetailScreen(screen, id, name)))
+						.dimensions(0, 0, 20, 20).build();
+				this.details.setTooltip(Tooltip.of(Text.translatable("gui.voicy.player_options")));
+			}
+
+			@Override
+			public void render(DrawContext context, int index, int y, int x, int entryWidth, int entryHeight,
+							   int mouseX, int mouseY, boolean hovered, float delta) {
+				var font = MinecraftClient.getInstance().textRenderer;
+				GuiUtil.drawHead(context, id, x + 4, y + 8, 16);
+
+				int controlsWidth = 100 + 4 + 20;
+				int nameMax = entryWidth - 28 - controlsWidth - 8;
+				GroupInfo group = ClientGroupState.groupOf(id);
+				int nameY = group == null ? y + 12 : y + 6;
+				context.drawTextWithShadow(font, GuiUtil.coloredName(id, font.trimToWidth(name, nameMax)),
+						x + 26, nameY, 0xFFFFFFFF);
+				if (group != null) {
+					context.drawTextWithShadow(font,
+							Text.translatable("gui.voicy.in_group", font.trimToWidth(group.name(), nameMax - 40)),
+							x + 26, y + 18, 0xFF999999);
+				}
+
+				volume.setX(x + entryWidth - controlsWidth);
+				volume.setY(y + 6);
+				volume.render(context, mouseX, mouseY, delta);
+				details.setX(x + entryWidth - 20);
+				details.setY(y + 6);
+				details.render(context, mouseX, mouseY, delta);
+			}
+
+			@Override
+			public List<? extends Element> children() {
+				return List.of(volume, details);
+			}
+
+			@Override
+			public List<? extends Selectable> selectableChildren() {
+				return List.of(volume, details);
+			}
 		}
 	}
 
+	/** Local playback volume for one player: 0-200%, stored through the public volume API. */
+	static final class VolumeSlider extends SliderWidget {
 
-	private record OnlinePlayer(UUID id, String name) {
+		private final UUID player;
+
+		VolumeSlider(int x, int y, int width, int height, UUID player, float initialVolume) {
+			super(x, y, width, height,
+					Text.translatable("gui.voicy.volume_short", percent(MathHelper.clamp(initialVolume / 2.0, 0.0, 1.0))),
+					MathHelper.clamp(initialVolume / 2.0, 0.0, 1.0));
+			this.player = player;
+		}
+
+		private static String percent(double sliderValue) {
+			return String.format("%.0f%%", sliderValue * 200.0);
+		}
+
+		@Override
+		protected void updateMessage() {
+			setMessage(Text.translatable("gui.voicy.volume_short", percent(value)));
+		}
+
+		@Override
+		protected void applyValue() {
+			VoiceChatAPI api = VoiceChatAPI.getInstance();
+			if (api != null) {
+				api.getVolumeManager().setPlayerVolume(player, (float) (value * 2.0));
+			}
+		}
+
+		void reset() {
+			value = 0.5;
+			updateMessage();
+			applyValue();
+		}
 	}
 }

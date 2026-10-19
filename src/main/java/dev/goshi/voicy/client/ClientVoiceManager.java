@@ -47,6 +47,9 @@ public final class ClientVoiceManager implements AutoCloseable {
 	private final Map<UUID, Long> lastVoiceFrameNanos = new ConcurrentHashMap<>();
 	private final Set<UUID> talkingSources = ConcurrentHashMap.newKeySet();
 	private static final long TALKING_TIMEOUT_NANOS = 400_000_000L;
+	/** Last time a frame flagged as group voice arrived per source; those are played in-head, not on the sender. */
+	private final Map<UUID, Long> lastGroupFrameNanos = new ConcurrentHashMap<>();
+	private static final long GROUP_VOICE_WINDOW_NANOS = 600_000_000L;
 
 	private final AtomicBoolean selfMuted = new AtomicBoolean(false);
 	private final AtomicBoolean selfDeafened = new AtomicBoolean(false);
@@ -325,6 +328,9 @@ public final class ClientVoiceManager implements AutoCloseable {
 			}
 		}
 		lastVoiceFrameNanos.put(frame.speakerId(), System.nanoTime());
+		if (frame.distanceRadius() < 0.0f) {
+			lastGroupFrameNanos.put(frame.speakerId(), System.nanoTime());
+		}
 		if (talkingSources.add(frame.speakerId())) {
 			VoicyVoiceChatAPI.publishTalking(frame.speakerId(), true);
 		}
@@ -392,16 +398,26 @@ public final class ClientVoiceManager implements AutoCloseable {
 					source.recycleProcessedBuffers();
 					continue;
 				}
-				if (!(client.world.getPlayerByUuid(speakerId) instanceof OtherClientPlayerEntity speaker)) {
-					continue;
+				Long lastGroupFrame = lastGroupFrameNanos.get(speakerId);
+				boolean groupVoice = lastGroupFrame != null && now - lastGroupFrame < GROUP_VOICE_WINDOW_NANOS;
+				SpatialAudioSource source;
+				if (groupVoice) {
+					// Group voice reaches members at any distance, so it is played in-head (no position,
+					// no occlusion) at the volume set for that player in the Players tab.
+					source = spatialSources.computeIfAbsent(speakerId, id -> new SpatialAudioSource(id, config));
+					source.updatePosition(client.player, client.player.getEyePos(), false);
+					source.setGain(playbackVolume(speakerId));
+				} else {
+					if (!(client.world.getPlayerByUuid(speakerId) instanceof OtherClientPlayerEntity speaker)) {
+						continue;
+					}
+					source = spatialSources.computeIfAbsent(speakerId, id -> new SpatialAudioSource(id, config));
+					boolean occluded = config.realisticOcclusion() && isOccluded(client, speaker);
+					source.updatePosition(client.player, speaker, occluded);
+					double distance = client.player.getEyePos().distanceTo(speaker.getEyePos());
+					double gain = Math.max(0.35, 1.0 / (1.0 + (distance / 12.0)));
+					source.setGain((float) (gain * playbackVolume(speakerId) * (occluded ? 0.35 : 1.0)));
 				}
-				SpatialAudioSource source = spatialSources.computeIfAbsent(speakerId,
-						id -> new SpatialAudioSource(id, config));
-				boolean occluded = config.realisticOcclusion() && isOccluded(client, speaker);
-				source.updatePosition(client.player, speaker, occluded);
-				double distance = client.player.getEyePos().distanceTo(speaker.getEyePos());
-				double gain = Math.max(0.35, 1.0 / (1.0 + (distance / 12.0)));
-				source.setGain((float) (gain * playbackVolume(speakerId) * (occluded ? 0.35 : 1.0)));
 				VoiceFramePayload readyFrame;
 				while ((readyFrame = buffer.pollReady()) != null) {
 					boolean concealment = readyFrame.opusData().length == 0;
