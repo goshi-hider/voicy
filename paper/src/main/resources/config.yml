@@ -1,0 +1,5 @@
+proximity-radius: 48.0
+sample-rate: 48000
+frame-duration-ms: 20
+prefer-udp-fallback: true
+udp-port: 25555

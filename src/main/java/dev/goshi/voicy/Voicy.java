@@ -176,7 +176,7 @@ public class Voicy implements ModInitializer {
 
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             runningServer = server;
-            // Groups only live as long as the world is running (the integrated server restarts in the same JVM).
+
             groupManager.clear();
             speakerManager.bind(server.getOverworld());
             speakerManager.syncToPlayers(server);
@@ -197,11 +197,6 @@ public class Voicy implements ModInitializer {
         LOGGER.info("[Voicy] Server voice pipeline initialized (radius={} blocks)", config.proximityRadius());
     }
 
-    /**
-     * {@code /speaker group join|leave|list}: puts a speaker into a voice group so it can be tested alone.
-     * A speaker inside a group only repeats voices of members who are talking to that group; a speaker outside
-     * every group never repeats a player who is talking to their group only.
-     */
     private com.mojang.brigadier.builder.LiteralArgumentBuilder<ServerCommandSource> buildSpeakerGroupCommand() {
         var group = CommandManager.literal("group");
         group.then(CommandManager.literal("join")
@@ -269,7 +264,6 @@ public class Voicy implements ModInitializer {
         return 1;
     }
 
-    /** The speaker closest to whoever ran the command, in the same dimension; -1 if there is none. */
     private int nearestSpeakerId(ServerCommandSource source) {
         Vec3d origin = source.getPosition();
         ServerWorld world = source.getWorld();

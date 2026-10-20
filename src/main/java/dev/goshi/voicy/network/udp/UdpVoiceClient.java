@@ -58,7 +58,6 @@ public final class UdpVoiceClient implements AutoCloseable {
 		return running.get() && socket != null && !socket.isClosed();
 	}
 
-	/** True once the server answered a probe, i.e. UDP demonstrably reaches it with our secret. */
 	public boolean isAcked() {
 		return acked;
 	}
@@ -121,12 +120,6 @@ public final class UdpVoiceClient implements AutoCloseable {
 		return buf.array();
 	}
 
-	/**
-	 * Decodes an S2C packet as written by UdpVoiceServer.encode(): [uuid:16][seq:8][radius:4][opus].
-	 * No secret field here - the client already trusts whatever its own socket is bound to the
-	 * negotiated server address/port for. (This is a distinct wire format from the C2S packets this
-	 * class sends via encode(frame, secret), which UdpVoiceServer.decodeAuthenticated() parses.)
-	 */
 	public static VoiceFramePayload decode(byte[] data, int length) {
 		if (length < 16 + 8 + 4) {
 			return null;

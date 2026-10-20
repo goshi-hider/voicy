@@ -50,7 +50,7 @@ public final class OpenALAudioEngine implements AutoCloseable {
 
 	public void setOutputDevice(String deviceName) {
 		long current = ALC10.alcGetContextsDevice(ALC10.alcGetCurrentContext());
-		
+
 		if (deviceName != null && !deviceName.isEmpty()) {
 			ALC10.alcGetString(current, ALC11.ALC_ALL_DEVICES_SPECIFIER);
 		}
@@ -58,6 +58,6 @@ public final class OpenALAudioEngine implements AutoCloseable {
 
 	@Override
 	public void close() {
-		
+
 	}
 }

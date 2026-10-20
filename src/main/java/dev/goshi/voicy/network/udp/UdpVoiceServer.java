@@ -18,9 +18,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class UdpVoiceServer implements AutoCloseable {
 
 	private static final int MAX_PACKET = 2048;
-	/** Client -> server reachability probe: [VPNG][uuid:16][secretLen:4][secret]. */
+
 	public static final byte[] PROBE_MAGIC = {'V', 'P', 'N', 'G'};
-	/** Server -> client reply to a valid probe. */
+
 	public static final byte[] ACK_MAGIC = {'V', 'A', 'C', 'K'};
 
 	private final AtomicBoolean running = new AtomicBoolean(false);
@@ -93,7 +93,6 @@ public final class UdpVoiceServer implements AutoCloseable {
 		}
 	}
 
-	/** Answers a valid reachability probe so the client knows UDP works end-to-end. */
 	private boolean handleProbe(DatagramPacket packet) throws IOException {
 		byte[] data = packet.getData();
 		int length = packet.getLength();

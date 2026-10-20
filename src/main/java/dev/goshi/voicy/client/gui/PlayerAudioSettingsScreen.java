@@ -21,10 +21,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * The Players tab: everybody online with a volume slider each. The ">" button opens that player's page
- * (volume, plus invite / join for groups).
- */
 public final class PlayerAudioSettingsScreen extends VoicyScreen {
 
 	private static final int ROW_HEIGHT = 32;
@@ -173,7 +169,6 @@ public final class PlayerAudioSettingsScreen extends VoicyScreen {
 		}
 	}
 
-	/** Local playback volume for one player: 0-200%, stored through the public volume API. */
 	static final class VolumeSlider extends SliderWidget {
 
 		private final UUID player;

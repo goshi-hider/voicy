@@ -9,10 +9,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/**
- * Colors the name tag above a player's head with the color they picked in their voice group. Only touches
- * the client-side copy of the player: server-side display names (chat, commands) stay untouched.
- */
 @Mixin(PlayerEntity.class)
 public abstract class PlayerEntityMixin {
 

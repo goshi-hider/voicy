@@ -21,6 +21,13 @@ public class VoicyClient implements ClientModInitializer {
 			new ClientNetworkHandler(voiceManager).register();
 			VoicyKeyBindings.register(voiceManager);
 			GroupHud.register(voiceManager);
+			net.fabricmc.fabric.api.client.rendering.v1.LivingEntityFeatureRendererRegistrationCallback.EVENT.register(
+					(entityType, entityRenderer, registrationHelper, context) -> {
+						if (entityRenderer instanceof net.minecraft.client.render.entity.PlayerEntityRenderer playerRenderer) {
+							registrationHelper.register(
+									new dev.goshi.voicy.client.render.TalkingSplitHeadFeatureRenderer(playerRenderer));
+						}
+					});
 
 			ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
 				if (voiceManager != null) {
@@ -29,6 +36,7 @@ public class VoicyClient implements ClientModInitializer {
 			});
 			ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
 				ClientGroupState.reset();
+				dev.goshi.voicy.client.AnimationStates.clear();
 				if (voiceManager != null) {
 					voiceManager.stopCapture();
 					voiceManager.closeTransport();

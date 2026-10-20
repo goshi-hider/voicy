@@ -1,0 +1,38 @@
+plugins {
+	id 'java'
+}
+
+repositories {
+	mavenCentral()
+	maven {
+		name = 'papermc'
+		url = 'https://repo.papermc.io/repository/maven-public/'
+	}
+}
+
+dependencies {
+	compileOnly "io.papermc.paper:paper-api:${project.paper_api_version}"
+}
+
+java {
+	sourceCompatibility = JavaVersion.VERSION_21
+	targetCompatibility = JavaVersion.VERSION_21
+	withSourcesJar()
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 21
+	it.options.encoding = 'UTF-8'
+}
+
+processResources {
+	def version = project.version
+	inputs.property 'version', version
+	filesMatching('plugin.yml') {
+		expand 'version': version
+	}
+}
+
+jar {
+	archiveBaseName = 'voicy-paper'
+}

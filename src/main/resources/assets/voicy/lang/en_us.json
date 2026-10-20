@@ -115,5 +115,16 @@
   "gui.voicy.color.red": "Red",
   "gui.voicy.color.light_purple": "Light Purple",
   "gui.voicy.color.yellow": "Yellow",
-  "gui.voicy.color.white": "White"
+  "gui.voicy.color.white": "White",
+  "gui.voicy.animation_style": "Talking Animation: %s",
+  "gui.voicy.animation_style.off": "Off",
+  "gui.voicy.animation_style.squish": "Squish",
+  "gui.voicy.animation_style.scale_height": "Scale Height",
+  "gui.voicy.animation_style.scale": "Scale",
+  "gui.voicy.animation_style.split_hinge": "Split Head (Hinge)",
+  "gui.voicy.animation_style.split_vertical": "Split Head (Vertical)",
+  "gui.voicy.animation_style.nod": "Nod",
+  "gui.voicy.split_height": "Split Height: %s",
+  "gui.voicy.page_audio": "Audio",
+  "gui.voicy.page_effects": "Effects"
 }

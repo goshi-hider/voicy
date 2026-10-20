@@ -84,7 +84,7 @@ public final class MicrophoneCapture implements AutoCloseable {
 		if (line == null) {
 			line = (TargetDataLine) AudioSystem.getLine(info);
 		}
-		
+
 		int lineBufferBytes = config.frameSizeSamples() * 2 * 8;
 		line.open(format, lineBufferBytes);
 		line.start();

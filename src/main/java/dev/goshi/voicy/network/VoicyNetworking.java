@@ -28,6 +28,8 @@ public final class VoicyNetworking {
 		PayloadTypeRegistry.playC2S().register(ApiCommandPayload.TYPE, ApiCommandPayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(HandshakePayload.TYPE, HandshakePayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(GroupActionPayload.TYPE, GroupActionPayload.CODEC);
+		PayloadTypeRegistry.playC2S().register(dev.goshi.voicy.network.payload.AnimationStylePayload.TYPE,
+				dev.goshi.voicy.network.payload.AnimationStylePayload.CODEC);
 
 		PayloadTypeRegistry.playS2C().register(VoiceFramePayload.TYPE, VoiceFramePayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(StateSyncPayload.TYPE, StateSyncPayload.CODEC);
@@ -37,5 +39,7 @@ public final class VoicyNetworking {
 		PayloadTypeRegistry.playS2C().register(GroupDirectoryPayload.TYPE, GroupDirectoryPayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(GroupStatePayload.TYPE, GroupStatePayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(GroupNotifyPayload.TYPE, GroupNotifyPayload.CODEC);
+		PayloadTypeRegistry.playS2C().register(dev.goshi.voicy.network.payload.AnimationStylePayload.TYPE,
+				dev.goshi.voicy.network.payload.AnimationStylePayload.CODEC);
 	}
 }

@@ -1,0 +1,24 @@
+name: VoicyPaper
+version: '${version}'
+main: dev.goshi.voicy.paper.VoicyPaperPlugin
+api-version: '1.21'
+author: Goshi
+description: >
+  Server-side-only implementation of the Voicy voice chat protocol for Paper/Spigot servers.
+  Players only need the Voicy Fabric mod (+ Fabric API) client-side - no server mod loader required.
+website: https://github.com/
+
+commands:
+  speaker:
+    description: Manage world-anchored voice speakers and their group assignment.
+    usage: /speaker <create|remove|show|list|test|group> ...
+    permission: voicy.speaker
+    permission-message: You do not have permission to manage voice speakers.
+
+permissions:
+  voicy.speaker:
+    description: Allows managing voice speakers with /speaker.
+    default: op
+  voicy.admin:
+    description: Allows targeting other players' mute/deafen state through the Voicy API.
+    default: op

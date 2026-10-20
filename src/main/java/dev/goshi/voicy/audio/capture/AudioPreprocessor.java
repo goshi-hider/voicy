@@ -8,7 +8,7 @@ public final class AudioPreprocessor {
 	private final float noiseFloor;
 
 	public AudioPreprocessor(float noiseFloor) {
-		
+
 		this.noiseFloor = Math.max(0.003f, Math.min(0.02f, noiseFloor * 0.08f));
 	}
 
@@ -21,10 +21,10 @@ public final class AudioPreprocessor {
 		if (peak >= noiseFloor && peak > 0.0001f) {
 			float desired = targetLevel / peak;
 			if (desired < agcGain) {
-				
+
 				agcGain = agcGain * 0.75f + desired * 0.25f;
 			} else {
-				
+
 				agcGain = agcGain * 0.995f + desired * 0.005f;
 			}
 			agcGain = Math.max(0.5f, Math.min(6.0f, agcGain));

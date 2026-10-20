@@ -11,3 +11,4 @@ pluginManagement {
 
 rootProject.name = 'voicy'
 include 'voicechat-api'
+include 'paper'

@@ -27,7 +27,7 @@ public interface VolumeManager {
 	void unregisterFilter(@NotNull AudioFilterHandle handle);
 
 	interface AudioFilter {
-		
+
 		short[] process(@NotNull short[] pcm, int sampleRate, @NotNull UUID speakerId);
 	}
 

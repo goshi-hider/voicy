@@ -17,8 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class VoicyConfig implements VoiceChatConfigView {
 
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-	// peakLevel() in MicrophoneCapture maps mic dB to this normalized 0..1 range. Above ~0.35
-	// the gate needs near-clipping input to ever open - anything past that is effectively "never".
+
 	public static final float ACTIVATION_THRESHOLD_MIN = 0.01f;
 	public static final float ACTIVATION_THRESHOLD_MAX = 0.35f;
 	public static final VoicyConfig INSTANCE = load();
@@ -31,6 +30,8 @@ public final class VoicyConfig implements VoiceChatConfigView {
 	private float activationThreshold = 0.12f;
 	private boolean preferUdpFallback = true;
 	private boolean realisticOcclusion = true;
+	private AnimationStyle animationStyle = AnimationStyle.SQUISH;
+	private float splitHeight = 0.5f;
 	private String selectedInputDevice = "";
 	private String selectedOutputDevice = "";
 	private int maxOpusBitrate = 40000;
@@ -53,11 +54,9 @@ public final class VoicyConfig implements VoiceChatConfigView {
 				}
 			}
 		} catch (Throwable ignored) {
-			
+
 		}
-		// Self-heal a threshold saved before this clamp existed (e.g. from a slider drag that
-		// stored its raw 0..1 position directly) - otherwise voice activation stays dead forever
-		// on every future launch with no indication why.
+
 		config.activationThreshold = clampActivationThreshold(config.activationThreshold);
 		return config;
 	}
@@ -74,7 +73,7 @@ public final class VoicyConfig implements VoiceChatConfigView {
 				GSON.toJson(this, writer);
 			}
 		} catch (Throwable ignored) {
-			
+
 		}
 	}
 
@@ -142,6 +141,24 @@ public final class VoicyConfig implements VoiceChatConfigView {
 
 	public void setRealisticOcclusion(boolean realisticOcclusion) {
 		this.realisticOcclusion = realisticOcclusion;
+		save();
+	}
+
+	public AnimationStyle animationStyle() {
+		return animationStyle == null ? AnimationStyle.SQUISH : animationStyle;
+	}
+
+	public void setAnimationStyle(AnimationStyle animationStyle) {
+		this.animationStyle = animationStyle;
+		save();
+	}
+
+	public float splitHeight() {
+		return splitHeight < 0.15f || splitHeight > 0.85f ? 0.5f : splitHeight;
+	}
+
+	public void setSplitHeight(float splitHeight) {
+		this.splitHeight = Math.max(0.15f, Math.min(0.85f, splitHeight));
 		save();
 	}
 

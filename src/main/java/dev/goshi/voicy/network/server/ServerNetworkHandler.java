@@ -19,6 +19,8 @@ public final class ServerNetworkHandler {
 	private final VoiceSecurityService securityService;
 	private final UdpVoiceServer udpServer;
 	private final VoicyConfig config;
+	private final java.util.Map<java.util.UUID, dev.goshi.voicy.network.payload.AnimationStylePayload> animationStyles =
+			new java.util.concurrent.ConcurrentHashMap<>();
 
 	public ServerNetworkHandler(
 			VoiceRouter router,
@@ -51,6 +53,10 @@ public final class ServerNetworkHandler {
 					dev.goshi.voicy.Voicy.getInstance().groupNetwork().handle(context.player(), payload));
 		});
 
+		ServerPlayNetworking.registerGlobalReceiver(dev.goshi.voicy.network.payload.AnimationStylePayload.TYPE, (payload, context) -> {
+			context.server().execute(() -> handleAnimationStyle(context.player(), payload));
+		});
+
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			ServerPlayerEntity player = handler.player;
 			securityService.onPlayerJoin(player.getUuid());
@@ -58,10 +64,12 @@ public final class ServerNetworkHandler {
 			broadcastState(player);
 			dev.goshi.voicy.Voicy.getInstance().speakerManager().syncToPlayer(player);
 			dev.goshi.voicy.Voicy.getInstance().groupNetwork().onJoin(player);
+			sendAnimationStyles(player);
 		});
 
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
 			securityService.onPlayerLeave(handler.player.getUuid());
+			animationStyles.remove(handler.player.getUuid());
 			dev.goshi.voicy.Voicy.getInstance().groupNetwork().onDisconnect(handler.player);
 		});
 	}
@@ -79,10 +87,31 @@ public final class ServerNetworkHandler {
 				config.sampleRate(),
 				config.frameDurationMs(),
 				secret,
-				// Empty = "the address you connected to". The server can't reliably know its own public
-				// address, and "127.0.0.1" points remote clients at their own machine.
+
 				""
 		));
+	}
+
+	private void handleAnimationStyle(ServerPlayerEntity player, dev.goshi.voicy.network.payload.AnimationStylePayload payload) {
+		int style = Math.max(0, Math.min(6, payload.style()));
+		float split = Float.isNaN(payload.splitHeight()) ? 0.5f : Math.max(0.15f, Math.min(0.85f, payload.splitHeight()));
+		dev.goshi.voicy.network.payload.AnimationStylePayload clean =
+				new dev.goshi.voicy.network.payload.AnimationStylePayload(player.getUuid(), style, split);
+		animationStyles.put(player.getUuid(), clean);
+		for (ServerPlayerEntity other : net.fabricmc.fabric.api.networking.v1.PlayerLookup.all(player.server)) {
+			if (ServerPlayNetworking.canSend(other, dev.goshi.voicy.network.payload.AnimationStylePayload.TYPE)) {
+				ServerPlayNetworking.send(other, clean);
+			}
+		}
+	}
+
+	private void sendAnimationStyles(ServerPlayerEntity player) {
+		if (!ServerPlayNetworking.canSend(player, dev.goshi.voicy.network.payload.AnimationStylePayload.TYPE)) {
+			return;
+		}
+		for (dev.goshi.voicy.network.payload.AnimationStylePayload payload : animationStyles.values()) {
+			ServerPlayNetworking.send(player, payload);
+		}
 	}
 
 	private void broadcastState(ServerPlayerEntity player) {

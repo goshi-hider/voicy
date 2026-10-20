@@ -17,7 +17,7 @@ public final class JitterBuffer {
 			Comparator.comparingLong(BufferedFrame::sequence)
 	);
 	private long nextExpectedSequence = -1;
-	
+
 	private long lastAdvanceNanos = -1L;
 
 	public JitterBuffer(int maxLatencyMs, int frameDurationMs) {
@@ -68,7 +68,7 @@ public final class JitterBuffer {
 				}
 				long gapWaitNanos = Math.max(1L, frameDurationMs) * 1_000_000L;
 				if (System.nanoTime() - lastAdvanceNanos >= gapWaitNanos) {
-					
+
 					long lostSequence = nextExpectedSequence++;
 					lastAdvanceNanos = System.nanoTime();
 					VoiceFramePayload nextFrame = head.frame();

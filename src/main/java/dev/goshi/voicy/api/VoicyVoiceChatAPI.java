@@ -97,8 +97,7 @@ public final class VoicyVoiceChatAPI implements VoiceChatAPI {
 			try {
 				api.events.publishState(playerId, wasMuted, mutedNow, wasDeafened, deafenedNow);
 			} catch (RuntimeException | LinkageError e) {
-				// Event delivery is best-effort: a broken listener or API jar mismatch must never
-				// crash the render thread from a button click.
+
 				dev.goshi.voicy.Voicy.LOGGER.error("[Voicy] Failed to publish voice state event", e);
 			}
 		}

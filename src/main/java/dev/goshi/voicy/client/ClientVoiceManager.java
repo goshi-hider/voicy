@@ -47,7 +47,7 @@ public final class ClientVoiceManager implements AutoCloseable {
 	private final Map<UUID, Long> lastVoiceFrameNanos = new ConcurrentHashMap<>();
 	private final Set<UUID> talkingSources = ConcurrentHashMap.newKeySet();
 	private static final long TALKING_TIMEOUT_NANOS = 400_000_000L;
-	/** Last time a frame flagged as group voice arrived per source; those are played in-head, not on the sender. */
+
 	private final Map<UUID, Long> lastGroupFrameNanos = new ConcurrentHashMap<>();
 	private static final long GROUP_VOICE_WINDOW_NANOS = 600_000_000L;
 
@@ -107,10 +107,6 @@ public final class ClientVoiceManager implements AutoCloseable {
 				handshake.transportMode(), handshake.sampleRate(), handshake.frameDurationMs(), host);
 	}
 
-	/**
-	 * The server can't know its own public address, so it sends an empty host and we use the address we
-	 * connected to. Integrated/singleplayer connections aren't IP sockets, so those map to loopback.
-	 */
 	private static String resolveUdpHost(String advertised) {
 		if (advertised != null && !advertised.isBlank()) {
 			return advertised;
@@ -129,10 +125,6 @@ public final class ClientVoiceManager implements AutoCloseable {
 		return "127.0.0.1";
 	}
 
-	/**
-	 * UDP is only a faster uplink. Until the server answers a probe we keep sending voice over the normal
-	 * Minecraft connection, so a firewalled/unforwarded UDP port can never silence the player.
-	 */
 	private void startUdpProbe(UdpVoiceClient udp) {
 		final int generation = probeGeneration.incrementAndGet();
 		Thread.ofVirtual().name("voicy-udp-probe").start(() -> {
@@ -162,7 +154,6 @@ public final class ClientVoiceManager implements AutoCloseable {
 		});
 	}
 
-	/** Drops the UDP session (if any); call on disconnect so a new server never inherits an old socket/secret. */
 	public void closeTransport() {
 		probeGeneration.incrementAndGet();
 		UdpVoiceClient udp = udpClient;
@@ -402,8 +393,7 @@ public final class ClientVoiceManager implements AutoCloseable {
 				boolean groupVoice = lastGroupFrame != null && now - lastGroupFrame < GROUP_VOICE_WINDOW_NANOS;
 				SpatialAudioSource source;
 				if (groupVoice) {
-					// Group voice reaches members at any distance, so it is played in-head (no position,
-					// no occlusion) at the volume set for that player in the Players tab.
+
 					source = spatialSources.computeIfAbsent(speakerId, id -> new SpatialAudioSource(id, config));
 					source.updatePosition(client.player, client.player.getEyePos(), false);
 					source.setGain(playbackVolume(speakerId));

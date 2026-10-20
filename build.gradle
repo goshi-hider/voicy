@@ -19,11 +19,8 @@ dependencies {
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
-	// Dev runtime/compile must use the *named* (yarn) output of the api module, otherwise the
-	// default (remapped, intermediary) jar ends up on the classpath and any api class that
-	// mentions a Minecraft type (e.g. Identifier) throws NoSuchMethodError at runtime.
 	api project(path: ':voicechat-api', configuration: 'namedElements')
-	// Production jar-in-jar must be the remapped (intermediary) output - the default config.
+
 	include project(':voicechat-api')
 
 	implementation 'io.github.jaredmdobson:concentus:1.0.2'
@@ -51,9 +48,7 @@ tasks.withType(Test).configureEach {
 }
 
 java {
-	// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
-	// if it is present.
-	// If you remove this line, sources will not be generated.
+
 	withSourcesJar()
 
 	sourceCompatibility = JavaVersion.VERSION_21
@@ -69,7 +64,6 @@ jar {
 	}
 }
 
-// configure the maven publication
 publishing {
 	publications {
 		create("mavenJava", MavenPublication) {
@@ -77,11 +71,7 @@ publishing {
 		}
 	}
 
-	// See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
 	repositories {
-		// Add repositories to publish to here.
-		// Notice: This block does NOT have the same function as the block in the top level.
-		// The repositories here will be used for publishing your artifact, not for
-		// retrieving dependencies.
+
 	}
 }

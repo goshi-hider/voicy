@@ -25,17 +25,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class VoiceRouter {
 
-	/**
-	 * Marks a frame as group voice. Group frames reach members at any distance, so the radius is meaningless;
-	 * a negative value tells the receiving client to play it in-head instead of positioning it on the sender.
-	 */
 	public static final float GROUP_FRAME_RADIUS = -1.0f;
 
 	private final VoiceSecurityService securityService;
 	private final VoicyConfig config;
 	private final Map<UUID, Deque<TimestampedFrame>> recentFrames = new ConcurrentHashMap<>();
 	private final Map<UUID, Deque<ReplayFrame>> replayQueues = new ConcurrentHashMap<>();
-	// "<speakerId>:<recipientUuid>" pairs the recipient has already been sent a SpeakerSyncPayload for.
+
 	private final Set<String> syncedRecipients = ConcurrentHashMap.newKeySet();
 	private long replaySequence = 1_000_000_000L;
 
@@ -112,10 +108,6 @@ public final class VoiceRouter {
 		relayToSpeakers(sender, frame);
 	}
 
-	/**
-	 * The sender talks to their group only: members hear it wherever they are, nobody else does, and only
-	 * speakers that belong to the same group repeat it.
-	 */
 	private void routeToGroup(ServerPlayerEntity sender, VoiceFramePayload frame, GroupManager.Group group) {
 		VoiceFramePayload groupFrame = new VoiceFramePayload(
 				frame.speakerId(), frame.sequence(), GROUP_FRAME_RADIUS, frame.opusData());
@@ -132,7 +124,6 @@ public final class VoiceRouter {
 		relayToSpeakers(sender, frame);
 	}
 
-	/** Forget sync state for a removed/recreated speaker id so position changes always resync. */
 	public void forgetSpeaker(int speakerId) {
 		String prefix = speakerId + ":";
 		syncedRecipients.removeIf(key -> key.startsWith(prefix));
@@ -233,12 +224,12 @@ public final class VoiceRouter {
 			var speaker = speakerEntry.getValue();
 			UUID speakerGroup = groups.speakerGroup(speakerId);
 			if (talkGroup != null) {
-				// Group voice: only speakers that joined this exact group repeat it, from any distance.
+
 				if (!talkGroup.id().equals(speakerGroup)) {
 					continue;
 				}
 			} else if (speakerGroup != null) {
-				// A speaker that belongs to a group never repeats public (proximity) voice.
+
 				continue;
 			}
 			if (!speaker.dimension().equals(world.getRegistryKey())
@@ -260,20 +251,14 @@ public final class VoiceRouter {
 					continue;
 				}
 				if (talkGroup != null) {
-					// Only group members hear what a speaker repeats from the group.
+
 					if (!talkGroup.isMember(recipient.getUuid())) {
 						continue;
 					}
 				} else if (!securityService.shareChannel(sender.getUuid(), recipient.getUuid())) {
 					continue;
 				}
-				// Guarantee the recipient knows this speaker's position before audio for it
-				// ever reaches them. The one-shot broadcast in SpeakerManager.syncToPlayers()
-				// (fired on /speaker create|remove) can miss a recipient that wasn't online yet,
-				// reconnected, or just dropped the packet - the client then has no position for
-				// this speaker UUID and silently discards every frame for it forever with no
-				// error (ClientVoiceManager.tick: speakerPos == null -> continue). Re-sending
-				// here, gated to once per (speaker, recipient) pair, closes that gap for free.
+
 				String syncKey = speakerId + ":" + recipient.getUuid();
 				if (syncedRecipients.add(syncKey)) {
 					Voicy.getInstance().speakerManager().syncToPlayer(recipient);

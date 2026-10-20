@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.UUID;
 
 public final class SpeakerManager {
-	private static final long SPEAKER_MAGIC = 0x564F4953564F4E45L; 
+	private static final long SPEAKER_MAGIC = 0x564F4953564F4E45L;
 
 	private final Map<Integer, SpeakerEntry> speakers = new LinkedHashMap<>();
 	private ServerWorld world;

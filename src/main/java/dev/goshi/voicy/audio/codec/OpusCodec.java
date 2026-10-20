@@ -74,6 +74,6 @@ public final class OpusCodec implements AutoCloseable {
 
 	@Override
 	public void close() {
-		
+
 	}
 }
