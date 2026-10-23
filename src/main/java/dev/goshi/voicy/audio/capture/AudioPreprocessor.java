@@ -2,7 +2,7 @@ package dev.goshi.voicy.audio.capture;
 
 public final class AudioPreprocessor {
 
-	private float agcGain = 1.0f;
+	private float agcGain = 3.0f;
 	private float gateGain = 1.0f;
 	private final float targetLevel = 0.22f;
 	private final float noiseFloor;
@@ -25,9 +25,12 @@ public final class AudioPreprocessor {
 				agcGain = agcGain * 0.75f + desired * 0.25f;
 			} else {
 
-				agcGain = agcGain * 0.995f + desired * 0.005f;
+				agcGain = agcGain * 0.98f + desired * 0.02f;
 			}
-			agcGain = Math.max(0.5f, Math.min(6.0f, agcGain));
+			// Never let the gain push this frame's peak past the soft-limiter knee, so the
+			// first loud frame after silence can't slam into full scale.
+			agcGain = Math.min(agcGain, 0.8f / peak);
+			agcGain = Math.max(0.5f, Math.min(8.0f, agcGain));
 		}
 
 		for (int i = 0; i < count; i++) {

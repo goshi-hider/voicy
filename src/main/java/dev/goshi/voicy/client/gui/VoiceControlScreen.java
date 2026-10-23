@@ -88,10 +88,6 @@ public final class VoiceControlScreen extends VoicyScreen {
 		var inputDevices = voiceManager.capture().listInputDevices();
 		if (!inputDevices.isEmpty()) {
 			String current = voiceManager.capture().getSelectedDevice();
-			if (current == null || current.isBlank()) {
-				current = inputDevices.getFirst();
-				voiceManager.capture().selectDevice(current);
-			}
 			final String[] selected = { current };
 			addDrawableChild(ButtonWidget.builder(
 					Text.literal("Mic: " + selected[0]),
@@ -102,7 +98,6 @@ public final class VoiceControlScreen extends VoicyScreen {
 						}
 						selected[0] = inputDevices.get(idx);
 						voiceManager.capture().selectDevice(selected[0]);
-						config.setSelectedInputDevice(selected[0]);
 						btn.setMessage(Text.literal("Mic: " + selected[0]));
 					}
 			).dimensions(cx - 100, y, 200, 20).build());
@@ -131,6 +126,10 @@ public final class VoiceControlScreen extends VoicyScreen {
 					}
 			).dimensions(cx - 100, y, 200, 20).build());
 		}
+	}
+
+	private Text echoText() {
+		return Text.translatable(config.echoGuard() ? "gui.voicy.echo_guard_on" : "gui.voicy.echo_guard_off");
 	}
 
 	private Text styleText() {
@@ -176,6 +175,15 @@ public final class VoiceControlScreen extends VoicyScreen {
 		};
 		splitSlider.active = config.animationStyle().isSplit();
 		addDrawableChild(splitSlider);
+		y += 28;
+
+		addDrawableChild(ButtonWidget.builder(
+				echoText(),
+				btn -> {
+					config.setEchoGuard(!config.echoGuard());
+					btn.setMessage(echoText());
+				}
+		).dimensions(cx - 100, y, 200, 20).build());
 	}
 
 	private void initNavigation(int cx) {

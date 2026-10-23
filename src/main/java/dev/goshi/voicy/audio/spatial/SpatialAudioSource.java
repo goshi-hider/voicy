@@ -23,6 +23,7 @@ public final class SpatialAudioSource implements AutoCloseable {
 	public SpatialAudioSource(UUID ownerId, VoicyConfig config) {
 		this.ownerId = ownerId;
 		this.config = config;
+		AL10.alGetError();
 		this.source = AL10.alGenSources();
 
 		AL10.alSourcef(source, AL10.AL_PITCH, 1.0f);
@@ -45,12 +46,14 @@ public final class SpatialAudioSource implements AutoCloseable {
 	}
 
 	public void updatePosition(ClientPlayerEntity listener, OtherClientPlayerEntity speaker, boolean occluded) {
+		AL10.alGetError();
 		Vec3d listenerPos = listener.getEyePos();
 		Vec3d speakerPos = speaker.getEyePos();
 		updatePosition(listenerPos, speakerPos, occluded);
 	}
 
 	public void updatePosition(ClientPlayerEntity listener, Vec3d speakerPos, boolean occluded) {
+		AL10.alGetError();
 		Vec3d listenerPos = listener.getEyePos();
 		updatePosition(listenerPos, speakerPos, occluded);
 	}
@@ -68,11 +71,13 @@ public final class SpatialAudioSource implements AutoCloseable {
 	}
 
 	public void setGain(float gain) {
+		AL10.alGetError();
 		AL10.alSourcef(source, AL10.AL_GAIN, gain);
 		checkError("set source gain");
 	}
 
 	public void queuePcm(int bufferId) {
+		AL10.alGetError();
 		AL10.alSourceQueueBuffers(source, bufferId);
 		checkError("queue buffer");
 		queuedBuffers.addLast(bufferId);
@@ -85,6 +90,7 @@ public final class SpatialAudioSource implements AutoCloseable {
 	}
 
 	public void recycleProcessedBuffers() {
+		AL10.alGetError();
 		int processed = AL10.alGetSourcei(source, AL10.AL_BUFFERS_PROCESSED);
 		checkError("read processed buffers");
 		if (processed <= 0) {

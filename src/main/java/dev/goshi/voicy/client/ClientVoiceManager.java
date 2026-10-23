@@ -66,6 +66,8 @@ public final class ClientVoiceManager implements AutoCloseable {
 	private final java.util.concurrent.atomic.AtomicInteger probeGeneration = new java.util.concurrent.atomic.AtomicInteger();
 	private volatile float inputLevel;
 	private final AtomicLong receivedSpeakerFrames = new AtomicLong();
+	private final AtomicLong sentFrames = new AtomicLong();
+	private final AtomicLong receivedFrames = new AtomicLong();
 	private final AtomicLong queuedSpeakerFrames = new AtomicLong();
 	private volatile float recentPlaybackPeak = 0f;
 	private volatile long lastPlaybackNanos = Long.MIN_VALUE;
@@ -171,10 +173,48 @@ public final class ClientVoiceManager implements AutoCloseable {
 		try {
 			capture.open();
 		} catch (Exception e) {
-			Voicy.LOGGER.error("[Voicy] Failed to open microphone", e);
-			return;
+			Voicy.LOGGER.error("[Voicy] Failed to open microphone, will keep retrying", e);
 		}
+		// Time-based start so the counter never goes back after a restart/rejoin.
+		sequence.set(System.currentTimeMillis() / Math.max(1, config.frameDurationMs()));
 		captureThread = Thread.ofVirtual().name("voicy-capture").start(this::captureLoop);
+	}
+
+	/** Drops all per-speaker playback state (jitter buffers, decoders, OpenAL sources). */
+	public void resetPlaybackState() {
+		for (UUID id : talkingSources) {
+			VoicyVoiceChatAPI.publishTalking(id, false);
+		}
+		talkingSources.clear();
+		for (SpatialAudioSource source : spatialSources.values()) {
+			try {
+				source.close();
+			} catch (RuntimeException ignored) {
+				// the OpenAL context may already be gone
+			}
+		}
+		spatialSources.clear();
+		jitterBuffers.clear();
+		playbackDecoders.clear();
+		speakerPositions.clear();
+		lastVoiceFrameNanos.clear();
+		lastGroupFrameNanos.clear();
+		unsyncedSpeakerWarned.clear();
+		sendingActive = false;
+		voiceActivityGate.reset();
+	}
+
+	private void dropBrokenSource(UUID speakerId) {
+		SpatialAudioSource broken = spatialSources.remove(speakerId);
+		if (broken != null) {
+			try {
+				broken.close();
+			} catch (RuntimeException ignored) {
+				// context changed (audio device switched) - the source is already invalid
+			}
+		}
+		jitterBuffers.remove(speakerId);
+		playbackDecoders.remove(speakerId);
 	}
 
 	public void stopCapture() {
@@ -189,17 +229,71 @@ public final class ClientVoiceManager implements AutoCloseable {
 	}
 
 	private void captureLoop() {
-		short[] buffer = new short[config.frameSizeSamples()];
 		while (!Thread.currentThread().isInterrupted()) {
+			try {
+				captureLoopInner();
+				return;
+			} catch (RuntimeException e) {
+				Voicy.LOGGER.error("[Voicy] capture loop error, restarting", e);
+				try {
+					Thread.sleep(500);
+				} catch (InterruptedException interrupted) {
+					Thread.currentThread().interrupt();
+					return;
+				}
+			}
+		}
+	}
+
+	private void captureLoopInner() {
+		short[] buffer = new short[config.frameSizeSamples()];
+		int failures = 0;
+		long lastDeviceCheck = System.nanoTime();
+		long lastDiag = System.nanoTime();
+		float windowMax = 0f;
+		String deviceSignature = capture.deviceSignature();
+		while (!Thread.currentThread().isInterrupted()) {
+			long diagNow = System.nanoTime();
+			if (diagNow - lastDiag > 10_000_000_000L) {
+				lastDiag = diagNow;
+				UdpVoiceClient diagUdp = udpClient;
+				Voicy.LOGGER.info("[Voicy] diag: micLevelMax={} (activation threshold={}), agcGain={}, sending={}, sentFrames={}, receivedFrames={}, transport={}, udpAcked={}",
+						String.format(java.util.Locale.ROOT, "%.2f", windowMax), config.activationThreshold(),
+						String.format(java.util.Locale.ROOT, "%.1f", preprocessor.currentGain()), sendingActive,
+						sentFrames.get(), receivedFrames.get(), transportMode, diagUdp != null && diagUdp.isAcked());
+				windowMax = 0f;
+			}
+			long checkNow = System.nanoTime();
+			if (checkNow - lastDeviceCheck > 3_000_000_000L) {
+				lastDeviceCheck = checkNow;
+				String currentSignature = capture.deviceSignature();
+				if (!currentSignature.equals(deviceSignature)) {
+					deviceSignature = currentSignature;
+					Voicy.LOGGER.info("[Voicy] Audio devices changed, reopening microphone");
+					capture.reopen();
+				}
+			}
 			int samples = capture.read(buffer);
 			if (samples <= 0) {
 				inputLevel = 0.0f;
+				failures++;
+				try {
+					Thread.sleep(failures < 5 ? 10 : 250);
+				} catch (InterruptedException interrupted) {
+					Thread.currentThread().interrupt();
+					return;
+				}
+				if (failures == 3 || failures % 10 == 0) {
+					capture.reopen();
+				}
 				continue;
 			}
+			failures = 0;
 			if (samples < buffer.length) {
 				Arrays.fill(buffer, samples, buffer.length, (short) 0);
 			}
 			float level = capture.peakLevel(buffer, samples);
+			windowMax = Math.max(windowMax, level);
 			inputLevel = inputLevel * 0.68f + level * 0.32f;
 			preprocessor.process(buffer, samples);
 
@@ -228,7 +322,7 @@ public final class ClientVoiceManager implements AutoCloseable {
 			voiceActivityGate.reset();
 			return false;
 		}
-		if (!sendingActive && isLikelyPlaybackEcho(level)) {
+		if (config.echoGuard() && !sendingActive && isLikelyPlaybackEcho(level)) {
 			return false;
 		}
 		return switch (config.activationMode()) {
@@ -287,6 +381,7 @@ public final class ClientVoiceManager implements AutoCloseable {
 		if (client.player == null) {
 			return;
 		}
+		sentFrames.incrementAndGet();
 		VoiceFramePayload payload = new VoiceFramePayload(
 				client.player.getUuid(),
 				sequence.incrementAndGet(),
@@ -306,6 +401,7 @@ public final class ClientVoiceManager implements AutoCloseable {
 	}
 
 	public void onVoiceFrame(VoiceFramePayload frame) {
+		receivedFrames.incrementAndGet();
 		if (selfDeafened.get()) {
 			return;
 		}
@@ -419,7 +515,8 @@ public final class ClientVoiceManager implements AutoCloseable {
 				}
 				source.recycleProcessedBuffers();
 			} catch (Exception e) {
-				Voicy.LOGGER.error("[Voicy] playback error for {}", speakerId, e);
+				Voicy.LOGGER.error("[Voicy] playback error for {} - rebuilding its audio source", speakerId, e);
+				dropBrokenSource(speakerId);
 			}
 		}
 	}

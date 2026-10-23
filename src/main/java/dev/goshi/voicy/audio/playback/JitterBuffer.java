@@ -19,6 +19,11 @@ public final class JitterBuffer {
 	private long nextExpectedSequence = -1;
 
 	private long lastAdvanceNanos = -1L;
+	private long lastPushNanos = -1L;
+
+	/** A sequence this far behind (or a lower one after a pause) means the sender restarted. */
+	private static final long RESTART_GAP_FRAMES = 100L;
+	private static final long RESTART_PAUSE_NANOS = 1_000_000_000L;
 
 	public JitterBuffer(int maxLatencyMs, int frameDurationMs) {
 		this.maxLatencyMs = maxLatencyMs;
@@ -28,10 +33,20 @@ public final class JitterBuffer {
 	public void push(VoiceFramePayload frame) {
 		lock.lock();
 		try {
+			long now = System.nanoTime();
 			if (nextExpectedSequence < 0) {
 				nextExpectedSequence = frame.sequence();
-				lastAdvanceNanos = System.nanoTime();
+				lastAdvanceNanos = now;
+			} else if (frame.sequence() < nextExpectedSequence
+					&& (frame.sequence() + RESTART_GAP_FRAMES < nextExpectedSequence
+					|| now - lastPushNanos > RESTART_PAUSE_NANOS)) {
+				// The sender restarted its game / rejoined and its counter went back to a low
+				// number. Without this every new frame would be dropped as "old" forever.
+				queue.clear();
+				nextExpectedSequence = frame.sequence();
+				lastAdvanceNanos = now;
 			}
+			lastPushNanos = now;
 			if (frame.sequence() < nextExpectedSequence) {
 				return;
 			}

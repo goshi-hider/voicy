@@ -32,6 +32,8 @@ public final class VoicyConfig implements VoiceChatConfigView {
 	private boolean realisticOcclusion = true;
 	private AnimationStyle animationStyle = AnimationStyle.SQUISH;
 	private float splitHeight = 0.5f;
+	private boolean echoGuard = false;
+	private String micDevice = "";
 	private String selectedInputDevice = "";
 	private String selectedOutputDevice = "";
 	private int maxOpusBitrate = 40000;
@@ -141,6 +143,24 @@ public final class VoicyConfig implements VoiceChatConfigView {
 
 	public void setRealisticOcclusion(boolean realisticOcclusion) {
 		this.realisticOcclusion = realisticOcclusion;
+		save();
+	}
+
+	public String micDevice() {
+		return micDevice == null ? "" : micDevice;
+	}
+
+	public void setMicDevice(String micDevice) {
+		this.micDevice = micDevice == null ? "" : micDevice;
+		save();
+	}
+
+	public boolean echoGuard() {
+		return echoGuard;
+	}
+
+	public void setEchoGuard(boolean echoGuard) {
+		this.echoGuard = echoGuard;
 		save();
 	}
 

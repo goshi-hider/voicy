@@ -126,5 +126,7 @@
   "gui.voicy.animation_style.nod": "Nod",
   "gui.voicy.split_height": "Split Height: %s",
   "gui.voicy.page_audio": "Audio",
-  "gui.voicy.page_effects": "Effects"
+  "gui.voicy.page_effects": "Effects",
+  "gui.voicy.echo_guard_on": "Echo Guard: ON (speakers)",
+  "gui.voicy.echo_guard_off": "Echo Guard: OFF (headset)"
 }

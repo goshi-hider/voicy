@@ -131,4 +131,18 @@ class JitterBufferTest {
         assertEquals(0, lossFrame.opusData().length);
         assertEquals(12L, buffer.pollReady().sequence());
     }
+
+    @Test
+    void senderRestartShouldNotBeDroppedAsOldFrames() {
+        JitterBuffer buffer = new JitterBuffer(120, 20);
+        UUID speaker = UUID.randomUUID();
+
+        for (long sequence = 5000; sequence < 5010; sequence++) {
+            buffer.push(new VoiceFramePayload(speaker, sequence, 48.0f, new byte[] {1}));
+            assertNotNull(buffer.pollReady());
+        }
+        // sender restarted its game: counter starts again from 1
+        buffer.push(new VoiceFramePayload(speaker, 1, 48.0f, new byte[] {2}));
+        assertNotNull(buffer.pollReady());
+    }
 }

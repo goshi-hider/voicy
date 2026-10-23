@@ -22,6 +22,7 @@ public final class OpenALAudioEngine implements AutoCloseable {
 		if (pcm == null || pcm.length == 0) {
 			throw new IllegalArgumentException("Cannot upload empty PCM audio");
 		}
+		AL10.alGetError();
 		int buffer = AL10.alGenBuffers();
 		checkError("create buffer");
 		ByteBuffer data = MemoryUtil.memAlloc(pcm.length * 2).order(ByteOrder.nativeOrder());

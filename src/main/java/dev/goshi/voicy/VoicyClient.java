@@ -31,6 +31,7 @@ public class VoicyClient implements ClientModInitializer {
 
 			ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
 				if (voiceManager != null) {
+					voiceManager.resetPlaybackState();
 					voiceManager.startCapture();
 				}
 			});
@@ -40,6 +41,7 @@ public class VoicyClient implements ClientModInitializer {
 				if (voiceManager != null) {
 					voiceManager.stopCapture();
 					voiceManager.closeTransport();
+					voiceManager.resetPlaybackState();
 				}
 			});
 
