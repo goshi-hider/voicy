@@ -18,7 +18,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class VoiceSecurityService {
-
 	private final Map<UUID, PlayerVoiceState> states = new ConcurrentHashMap<>();
 	private final Map<UUID, byte[]> sessionSecrets = new ConcurrentHashMap<>();
 	private final Set<String> registeredNamespaces = ConcurrentHashMap.newKeySet();

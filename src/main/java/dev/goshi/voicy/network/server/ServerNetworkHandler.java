@@ -14,7 +14,6 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 public final class ServerNetworkHandler {
-
 	private final VoiceRouter router;
 	private final VoiceSecurityService securityService;
 	private final UdpVoiceServer udpServer;

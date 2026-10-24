@@ -3,7 +3,6 @@ package dev.goshi.voicy.paper.security;
 import java.util.UUID;
 
 public final class PlayerVoiceState {
-
 	private final UUID playerId;
 	private volatile boolean muted;
 	private volatile boolean deafened;

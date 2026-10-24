@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.UUID;
 
 public record GroupDirectoryPayload(List<GroupInfo> groups) {
-
 	public record Member(UUID id, String name, int color) {
 	}
 

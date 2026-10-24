@@ -13,7 +13,6 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 class JitterBufferTest {
-
     @Test
     void packetLossShouldNotBlockPlaybackForever() throws Exception {
         JitterBuffer buffer = new JitterBuffer(120, 20);
@@ -38,7 +37,7 @@ class JitterBufferTest {
         buffer.push(new VoiceFramePayload(speaker, 7, 12.0f, new byte[] {2}));
 
         assertNotNull(buffer.pollReady());
-        Thread.sleep(3L);
+        Thread.sleep(10L);
         assertNotNull(buffer.decodeNext(codec));
     }
 
@@ -124,7 +123,7 @@ class JitterBufferTest {
         buffer.push(new VoiceFramePayload(speaker, 12, 48.0f, new byte[] {2}));
 
         assertNotNull(buffer.pollReady());
-        Thread.sleep(3L);
+        Thread.sleep(10L);
         VoiceFramePayload lossFrame = buffer.pollReady();
         assertNotNull(lossFrame);
         assertEquals(11L, lossFrame.sequence());
@@ -141,7 +140,7 @@ class JitterBufferTest {
             buffer.push(new VoiceFramePayload(speaker, sequence, 48.0f, new byte[] {1}));
             assertNotNull(buffer.pollReady());
         }
-        // sender restarted its game: counter starts again from 1
+
         buffer.push(new VoiceFramePayload(speaker, 1, 48.0f, new byte[] {2}));
         assertNotNull(buffer.pollReady());
     }

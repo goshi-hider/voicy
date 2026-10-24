@@ -10,7 +10,6 @@ public record SpeakerSyncPayload(
 		double captureRadius,
 		double broadcastRadius
 ) {
-
 	public void encode(VoicyByteBuf buf) {
 		buf.writeVarInt(speakerId);
 		buf.writeDouble(x);

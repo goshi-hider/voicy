@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 
 public final class SpeakerCommand implements CommandExecutor, TabCompleter {
-
 	private final VoicyPaperPlugin plugin;
 
 	public SpeakerCommand(VoicyPaperPlugin plugin) {

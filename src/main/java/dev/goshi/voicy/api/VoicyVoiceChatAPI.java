@@ -29,7 +29,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public final class VoicyVoiceChatAPI implements VoiceChatAPI {
-
 	private final MuteManagerImpl muteManager;
 	private final DeafenManagerImpl deafenManager;
 	private final VolumeManagerImpl volumeManager;
@@ -97,7 +96,6 @@ public final class VoicyVoiceChatAPI implements VoiceChatAPI {
 			try {
 				api.events.publishState(playerId, wasMuted, mutedNow, wasDeafened, deafenedNow);
 			} catch (RuntimeException | LinkageError e) {
-
 				dev.goshi.voicy.Voicy.LOGGER.error("[Voicy] Failed to publish voice state event", e);
 			}
 		}
@@ -304,7 +302,6 @@ public final class VoicyVoiceChatAPI implements VoiceChatAPI {
 						processed = result;
 					}
 				} catch (RuntimeException ignored) {
-
 				}
 			}
 			return processed;
@@ -333,7 +330,6 @@ public final class VoicyVoiceChatAPI implements VoiceChatAPI {
 	}
 
 	static final class GroupManagerImpl implements GroupManager {
-
 		@Override
 		public @NotNull Collection<VoiceGroup> getGroups() {
 			List<VoiceGroup> groups = new ArrayList<>();

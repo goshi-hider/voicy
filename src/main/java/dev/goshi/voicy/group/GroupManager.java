@@ -14,7 +14,6 @@ import java.util.function.LongSupplier;
 import java.util.regex.Pattern;
 
 public final class GroupManager {
-
 	public static final int MIN_NAME_LENGTH = 2;
 	public static final int MAX_NAME_LENGTH = 16;
 	public static final int MIN_PLAYERS = 2;

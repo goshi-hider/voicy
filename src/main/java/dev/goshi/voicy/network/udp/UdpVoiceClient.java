@@ -13,7 +13,6 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class UdpVoiceClient implements AutoCloseable {
-
 	private static final int MAX_PACKET = 2048;
 
 	private final AtomicBoolean running = new AtomicBoolean(false);

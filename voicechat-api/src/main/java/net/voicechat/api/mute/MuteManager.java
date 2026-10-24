@@ -7,7 +7,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface MuteManager {
-
 	boolean requestMute(@NotNull UUID target, @NotNull Identifier sourceMod, @NotNull MuteReason reason);
 
 	boolean requestUnmute(@NotNull UUID target, @NotNull Identifier sourceMod);

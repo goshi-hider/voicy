@@ -5,7 +5,6 @@ import dev.goshi.voicy.paper.net.VoicyByteBuf;
 import java.util.UUID;
 
 public record AnimationStylePayload(UUID playerId, int style, float splitHeight) {
-
 	public void encode(VoicyByteBuf buf) {
 		buf.writeUuidAsString(playerId);
 		buf.writeVarInt(style);

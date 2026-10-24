@@ -9,7 +9,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class AnimationStates {
-
 	private static final Map<UUID, Entry> ENTRIES = new ConcurrentHashMap<>();
 
 	private AnimationStates() {

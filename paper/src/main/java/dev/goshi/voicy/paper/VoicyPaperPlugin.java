@@ -18,7 +18,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class VoicyPaperPlugin extends JavaPlugin {
-
 	private PaperVoicyConfig config;
 	private VoiceSecurityService securityService;
 	private GroupManager groupManager;

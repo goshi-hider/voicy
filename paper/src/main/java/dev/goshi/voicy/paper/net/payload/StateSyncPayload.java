@@ -5,7 +5,6 @@ import dev.goshi.voicy.paper.net.VoicyByteBuf;
 import java.util.UUID;
 
 public record StateSyncPayload(UUID playerId, boolean muted, boolean deafened) {
-
 	public void encode(VoicyByteBuf buf) {
 		buf.writeUuidAsString(playerId);
 		buf.writeBoolean(muted);

@@ -7,7 +7,6 @@ import io.github.jaredmdobson.concentus.OpusEncoder;
 import io.github.jaredmdobson.concentus.OpusSignal;
 
 public final class OpusCodec implements AutoCloseable {
-
 	private final OpusEncoder encoder;
 	private final OpusDecoder decoder;
 	private final int frameSize;
@@ -74,6 +73,5 @@ public final class OpusCodec implements AutoCloseable {
 
 	@Override
 	public void close() {
-
 	}
 }

@@ -3,7 +3,6 @@ package net.voicechat.api;
 import org.jetbrains.annotations.Nullable;
 
 public final class VoiceChatAPIHolder {
-
 	private static volatile VoiceChatAPI instance;
 
 	private VoiceChatAPIHolder() {

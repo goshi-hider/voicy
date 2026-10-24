@@ -9,7 +9,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.junit.jupiter.api.Assertions.*;
 
 class GroupManagerTest {
-
 	private final AtomicLong now = new AtomicLong(1_000L);
 	private final GroupManager groups = new GroupManager(now::get);
 	private final UUID alice = UUID.randomUUID();

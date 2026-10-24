@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.UUID;
 
 public final class GroupScreen extends VoicyScreen {
-
 	private static final int ROW_HEIGHT = 26;
 
 	private final Screen parent;
@@ -90,7 +89,6 @@ public final class GroupScreen extends VoicyScreen {
 	}
 
 	private static final class GroupList extends ElementListWidget<GroupList.Row> {
-
 		GroupList(MinecraftClient client, int width, int height, int top) {
 			super(client, width, height, top, ROW_HEIGHT);
 		}
@@ -238,7 +236,6 @@ public final class GroupScreen extends VoicyScreen {
 										button -> ClientGroupState.send(Action.DECLINE_INVITE, invitation.groupId()))
 										.dimensions(0, 0, 50, 20).build()));
 			}
-
 		}
 	}
 }

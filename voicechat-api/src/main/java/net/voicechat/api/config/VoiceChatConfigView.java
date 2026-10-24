@@ -1,7 +1,6 @@
 package net.voicechat.api.config;
 
 public interface VoiceChatConfigView {
-
 	double proximityRadius();
 
 	double proximityFalloff();

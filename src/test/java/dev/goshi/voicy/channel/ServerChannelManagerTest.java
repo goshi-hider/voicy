@@ -9,7 +9,6 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ServerChannelManagerTest {
-
 	@Test
 	void joiningAnotherChannelRemovesOldMembership() {
 		ServerChannelManager manager = new ServerChannelManager();

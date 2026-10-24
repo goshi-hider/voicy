@@ -19,7 +19,6 @@ import java.util.Map;
 import java.util.UUID;
 
 public final class ClientGroupState {
-
 	private static volatile GroupDirectoryPayload directory = GroupDirectoryPayload.EMPTY;
 	private static volatile GroupStatePayload state = GroupStatePayload.EMPTY;
 	private static volatile int version;

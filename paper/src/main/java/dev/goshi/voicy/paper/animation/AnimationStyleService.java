@@ -11,7 +11,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class AnimationStyleService {
-
 	private final Plugin plugin;
 	private final Map<UUID, AnimationStylePayload> styles = new ConcurrentHashMap<>();
 

@@ -8,7 +8,6 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 public interface GroupManager {
-
 	int MIN_NAME_LENGTH = 2;
 	int MAX_NAME_LENGTH = 16;
 	int MIN_PLAYERS = 2;

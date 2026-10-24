@@ -16,7 +16,6 @@ import java.util.function.Function;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class UdpVoiceServer implements AutoCloseable {
-
 	private static final int MAX_PACKET = 2048;
 
 	public static final byte[] PROBE_MAGIC = {'V', 'P', 'N', 'G'};

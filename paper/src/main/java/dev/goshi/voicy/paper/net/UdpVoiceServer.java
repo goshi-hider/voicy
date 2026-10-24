@@ -15,7 +15,6 @@ import java.util.function.Function;
 import java.util.logging.Logger;
 
 public final class UdpVoiceServer implements AutoCloseable {
-
 	private static final int MAX_PACKET = 2048;
 	public static final byte[] PROBE_MAGIC = {'V', 'P', 'N', 'G'};
 	public static final byte[] ACK_MAGIC = {'V', 'A', 'C', 'K'};

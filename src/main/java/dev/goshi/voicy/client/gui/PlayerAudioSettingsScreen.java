@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.UUID;
 
 public final class PlayerAudioSettingsScreen extends VoicyScreen {
-
 	private static final int ROW_HEIGHT = 32;
 
 	private final Screen parent;
@@ -56,7 +55,6 @@ public final class PlayerAudioSettingsScreen extends VoicyScreen {
 	}
 
 	private static final class PlayerList extends ElementListWidget<PlayerList.Row> {
-
 		PlayerList(MinecraftClient client, int width, int height, int top) {
 			super(client, width, height, top, ROW_HEIGHT);
 		}
@@ -170,7 +168,6 @@ public final class PlayerAudioSettingsScreen extends VoicyScreen {
 	}
 
 	static final class VolumeSlider extends SliderWidget {
-
 		private final UUID player;
 
 		VolumeSlider(int x, int y, int width, int height, UUID player, float initialVolume) {

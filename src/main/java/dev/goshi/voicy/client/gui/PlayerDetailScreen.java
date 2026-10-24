@@ -12,7 +12,6 @@ import net.voicechat.api.VoiceChatAPI;
 import java.util.UUID;
 
 public final class PlayerDetailScreen extends VoicyScreen {
-
 	private final Screen parent;
 	private final UUID playerId;
 	private final String playerName;

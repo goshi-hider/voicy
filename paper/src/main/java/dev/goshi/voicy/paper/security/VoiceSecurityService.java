@@ -17,7 +17,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 public final class VoiceSecurityService {
-
 	public static final String OWN_NAMESPACE = "voicy";
 
 	private final Logger logger;

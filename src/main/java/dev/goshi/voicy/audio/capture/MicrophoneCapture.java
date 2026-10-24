@@ -13,7 +13,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 
 public final class MicrophoneCapture implements AutoCloseable {
-
 	public static final String DEFAULT_DEVICE = "System Default";
 
 	private final VoicyConfig config;
@@ -127,8 +126,6 @@ public final class MicrophoneCapture implements AutoCloseable {
 		byte[] raw = new byte[needed];
 		int read;
 		try {
-			// Never call a blocking read() on a line that may have gone dead (headset plugged in,
-			// default device switched): it would hang forever and the mic would stay silent.
 			long deadline = System.nanoTime() + 750_000_000L;
 			while (current.isOpen() && current.available() < needed) {
 				if (System.nanoTime() > deadline) {

@@ -24,7 +24,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class VoiceRouter {
-
 	public static final float GROUP_FRAME_RADIUS = -1.0f;
 
 	private final VoiceSecurityService securityService;
@@ -224,12 +223,10 @@ public final class VoiceRouter {
 			var speaker = speakerEntry.getValue();
 			UUID speakerGroup = groups.speakerGroup(speakerId);
 			if (talkGroup != null) {
-
 				if (!talkGroup.id().equals(speakerGroup)) {
 					continue;
 				}
 			} else if (speakerGroup != null) {
-
 				continue;
 			}
 			if (!speaker.dimension().equals(world.getRegistryKey())
@@ -251,7 +248,6 @@ public final class VoiceRouter {
 					continue;
 				}
 				if (talkGroup != null) {
-
 					if (!talkGroup.isMember(recipient.getUuid())) {
 						continue;
 					}

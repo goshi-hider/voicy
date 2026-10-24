@@ -9,7 +9,6 @@ import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
 
 public final class JitterBuffer {
-
 	private final int maxLatencyMs;
 	private final int frameDurationMs;
 	private final ReentrantLock lock = new ReentrantLock();
@@ -21,7 +20,6 @@ public final class JitterBuffer {
 	private long lastAdvanceNanos = -1L;
 	private long lastPushNanos = -1L;
 
-	/** A sequence this far behind (or a lower one after a pause) means the sender restarted. */
 	private static final long RESTART_GAP_FRAMES = 100L;
 	private static final long RESTART_PAUSE_NANOS = 1_000_000_000L;
 
@@ -40,8 +38,6 @@ public final class JitterBuffer {
 			} else if (frame.sequence() < nextExpectedSequence
 					&& (frame.sequence() + RESTART_GAP_FRAMES < nextExpectedSequence
 					|| now - lastPushNanos > RESTART_PAUSE_NANOS)) {
-				// The sender restarted its game / rejoined and its counter went back to a low
-				// number. Without this every new frame would be dropped as "old" forever.
 				queue.clear();
 				nextExpectedSequence = frame.sequence();
 				lastAdvanceNanos = now;
@@ -51,13 +47,22 @@ public final class JitterBuffer {
 				return;
 			}
 			queue.offer(new BufferedFrame(frame.sequence(), frame));
-			while (queue.size() > Math.max(1, maxLatencyMs / Math.max(1, frameDurationMs))) {
+			while (queue.size() > Math.max(2, 2 * maxLatencyMs / Math.max(1, frameDurationMs))) {
 				BufferedFrame dropped = queue.poll();
 				if (dropped != null && dropped.sequence() >= nextExpectedSequence) {
 					nextExpectedSequence = dropped.sequence() + 1;
 					lastAdvanceNanos = System.nanoTime();
 				}
 			}
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	public int size() {
+		lock.lock();
+		try {
+			return queue.size();
 		} finally {
 			lock.unlock();
 		}
@@ -81,9 +86,8 @@ public final class JitterBuffer {
 					lastAdvanceNanos = System.nanoTime();
 					return head.frame();
 				}
-				long gapWaitNanos = Math.max(1L, frameDurationMs) * 1_000_000L;
+				long gapWaitNanos = Math.max(1L, frameDurationMs) * 3L * 1_000_000L;
 				if (System.nanoTime() - lastAdvanceNanos >= gapWaitNanos) {
-
 					long lostSequence = nextExpectedSequence++;
 					lastAdvanceNanos = System.nanoTime();
 					VoiceFramePayload nextFrame = head.frame();

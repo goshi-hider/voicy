@@ -8,7 +8,6 @@ import java.util.UUID;
 import java.util.function.Consumer;
 
 public interface VoiceChatEvents {
-
 	void onPlayerMuted(@NotNull Consumer<PlayerMuteEvent> listener);
 
 	void onPlayerUnmuted(@NotNull Consumer<PlayerUnmuteEvent> listener);

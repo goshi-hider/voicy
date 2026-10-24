@@ -3,7 +3,6 @@ package dev.goshi.voicy.paper.net.payload;
 import dev.goshi.voicy.paper.net.VoicyByteBuf;
 
 public record GroupNotifyPayload(String key, String arg1, String arg2, boolean chat) {
-
 	public void encode(VoicyByteBuf buf) {
 		buf.writeString(key);
 		buf.writeString(arg1);

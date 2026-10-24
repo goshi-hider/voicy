@@ -6,7 +6,6 @@ import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.packet.CustomPayload;
 
 public record GroupNotifyPayload(String key, String arg1, String arg2, boolean chat) implements CustomPayload {
-
 	public static final CustomPayload.Id<GroupNotifyPayload> TYPE =
 			new CustomPayload.Id<>(Voicy.id("group_notify"));
 

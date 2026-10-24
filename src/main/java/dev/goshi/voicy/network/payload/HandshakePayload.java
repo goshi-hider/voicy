@@ -14,7 +14,6 @@ public record HandshakePayload(
 		byte[] sessionSecret,
 		String udpHost
 ) implements CustomPayload {
-
 	public enum TransportMode {
 		FABRIC_PAYLOAD,
 		UDP_FALLBACK

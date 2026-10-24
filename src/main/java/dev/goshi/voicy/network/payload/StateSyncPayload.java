@@ -13,7 +13,6 @@ public record StateSyncPayload(
 		boolean muted,
 		boolean deafened
 ) implements CustomPayload {
-
 	private static final PacketCodec<RegistryByteBuf, UUID> UUID_CODEC =
 			PacketCodecs.STRING.xmap(UUID::fromString, UUID::toString).cast();
 

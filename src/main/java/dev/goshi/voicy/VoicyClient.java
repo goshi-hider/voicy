@@ -6,12 +6,15 @@ import dev.goshi.voicy.client.ClientVoiceManager;
 import dev.goshi.voicy.client.VoicyKeyBindings;
 import dev.goshi.voicy.client.group.ClientGroupState;
 import dev.goshi.voicy.client.gui.GroupHud;
+import dev.goshi.voicy.client.gui.MusicHud;
+import dev.goshi.voicy.client.music.MusicPlayer;
 import dev.goshi.voicy.config.VoicyConfig;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 
 public class VoicyClient implements ClientModInitializer {
-
 	private static ClientVoiceManager voiceManager;
 
 	@Override
@@ -21,6 +24,9 @@ public class VoicyClient implements ClientModInitializer {
 			new ClientNetworkHandler(voiceManager).register();
 			VoicyKeyBindings.register(voiceManager);
 			GroupHud.register(voiceManager);
+			MusicHud.register();
+			ClientTickEvents.END_CLIENT_TICK.register(client -> MusicPlayer.INSTANCE.tick());
+			ClientLifecycleEvents.CLIENT_STOPPING.register(client -> MusicPlayer.INSTANCE.shutdown());
 			net.fabricmc.fabric.api.client.rendering.v1.LivingEntityFeatureRendererRegistrationCallback.EVENT.register(
 					(entityType, entityRenderer, registrationHelper, context) -> {
 						if (entityRenderer instanceof net.minecraft.client.render.entity.PlayerEntityRenderer playerRenderer) {
@@ -37,6 +43,7 @@ public class VoicyClient implements ClientModInitializer {
 			});
 			ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
 				ClientGroupState.reset();
+				MusicPlayer.INSTANCE.stop();
 				dev.goshi.voicy.client.AnimationStates.clear();
 				if (voiceManager != null) {
 					voiceManager.stopCapture();

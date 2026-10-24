@@ -15,7 +15,6 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 
 public final class ClientNetworkHandler {
-
 	private final ClientVoiceManager voiceManager;
 
 	public ClientNetworkHandler(ClientVoiceManager voiceManager) {

@@ -10,7 +10,6 @@ public record HandshakePayload(
 		byte[] sessionSecret,
 		String udpHost
 ) {
-
 	public enum TransportMode {
 		FABRIC_PAYLOAD,
 		UDP_FALLBACK

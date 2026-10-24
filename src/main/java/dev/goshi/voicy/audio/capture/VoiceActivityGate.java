@@ -1,7 +1,6 @@
 package dev.goshi.voicy.audio.capture;
 
 public final class VoiceActivityGate {
-
 	private final float activationThreshold;
 	private final float releaseThreshold;
 	private final long hangoverNanos;

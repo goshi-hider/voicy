@@ -8,7 +8,6 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
 public final class PlayerConnectionListener implements Listener {
-
 	private final VoicyPaperPlugin plugin;
 
 	public PlayerConnectionListener(VoicyPaperPlugin plugin) {

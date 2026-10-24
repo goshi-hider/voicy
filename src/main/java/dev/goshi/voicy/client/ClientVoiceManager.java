@@ -33,7 +33,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 public final class ClientVoiceManager implements AutoCloseable {
-
 	private final VoicyConfig config;
 	private final MicrophoneCapture capture;
 	private final AudioPreprocessor preprocessor;
@@ -67,6 +66,11 @@ public final class ClientVoiceManager implements AutoCloseable {
 	private volatile float inputLevel;
 	private final AtomicLong receivedSpeakerFrames = new AtomicLong();
 	private final AtomicLong sentFrames = new AtomicLong();
+	private final Map<UUID, Long> lastPlayedNanos = new ConcurrentHashMap<>();
+	private final Map<UUID, Long> primeStartNanos = new ConcurrentHashMap<>();
+	private static final int PRIME_FRAMES = 3;
+	private static final long PRIME_MAX_WAIT_NANOS = 100_000_000L;
+	private static final long PLAYING_TIMEOUT_NANOS = 300_000_000L;
 	private final AtomicLong receivedFrames = new AtomicLong();
 	private final AtomicLong queuedSpeakerFrames = new AtomicLong();
 	private volatile float recentPlaybackPeak = 0f;
@@ -175,12 +179,11 @@ public final class ClientVoiceManager implements AutoCloseable {
 		} catch (Exception e) {
 			Voicy.LOGGER.error("[Voicy] Failed to open microphone, will keep retrying", e);
 		}
-		// Time-based start so the counter never goes back after a restart/rejoin.
+
 		sequence.set(System.currentTimeMillis() / Math.max(1, config.frameDurationMs()));
 		captureThread = Thread.ofVirtual().name("voicy-capture").start(this::captureLoop);
 	}
 
-	/** Drops all per-speaker playback state (jitter buffers, decoders, OpenAL sources). */
 	public void resetPlaybackState() {
 		for (UUID id : talkingSources) {
 			VoicyVoiceChatAPI.publishTalking(id, false);
@@ -190,11 +193,12 @@ public final class ClientVoiceManager implements AutoCloseable {
 			try {
 				source.close();
 			} catch (RuntimeException ignored) {
-				// the OpenAL context may already be gone
 			}
 		}
 		spatialSources.clear();
 		jitterBuffers.clear();
+		lastPlayedNanos.clear();
+		primeStartNanos.clear();
 		playbackDecoders.clear();
 		speakerPositions.clear();
 		lastVoiceFrameNanos.clear();
@@ -204,13 +208,32 @@ public final class ClientVoiceManager implements AutoCloseable {
 		voiceActivityGate.reset();
 	}
 
+	private boolean readyToPlay(UUID id, JitterBuffer buffer, long now) {
+		Long last = lastPlayedNanos.get(id);
+		if (last != null && now - last < PLAYING_TIMEOUT_NANOS) {
+			return true;
+		}
+		int size = buffer.size();
+		if (size == 0) {
+			primeStartNanos.remove(id);
+			return false;
+		}
+		long start = primeStartNanos.computeIfAbsent(id, k -> now);
+		if (size >= PRIME_FRAMES || now - start >= PRIME_MAX_WAIT_NANOS) {
+			primeStartNanos.remove(id);
+			return true;
+		}
+		return false;
+	}
+
 	private void dropBrokenSource(UUID speakerId) {
+		lastPlayedNanos.remove(speakerId);
+		primeStartNanos.remove(speakerId);
 		SpatialAudioSource broken = spatialSources.remove(speakerId);
 		if (broken != null) {
 			try {
 				broken.close();
 			} catch (RuntimeException ignored) {
-				// context changed (audio device switched) - the source is already invalid
 			}
 		}
 		jitterBuffers.remove(speakerId);
@@ -300,7 +323,6 @@ public final class ClientVoiceManager implements AutoCloseable {
 			boolean effectiveTransmit = resolveTransmitState(level);
 			if (!effectiveTransmit) {
 				if (sendingActive) {
-
 					fadeOut(buffer, samples, Math.min(FADE_SAMPLES, samples));
 					encodeAndSend(buffer);
 					sendingActive = false;
@@ -308,7 +330,6 @@ public final class ClientVoiceManager implements AutoCloseable {
 				continue;
 			}
 			if (!sendingActive) {
-
 				fadeIn(buffer, samples, Math.min(FADE_SAMPLES, samples));
 				sendingActive = true;
 			}
@@ -451,7 +472,6 @@ public final class ClientVoiceManager implements AutoCloseable {
 				if (SpeakerManager.isSpeakerUuid(speakerId)) {
 					Vec3d speakerPos = speakerPositions.get(speakerId);
 					if (speakerPos == null) {
-
 						if (buffer.pollReady() != null) {
 							if (unsyncedSpeakerWarned.add(speakerId)) {
 								Voicy.LOGGER.warn("[Voicy] Discarding voice frames for speaker {} - no position sync yet", speakerId);
@@ -466,8 +486,13 @@ public final class ClientVoiceManager implements AutoCloseable {
 					double distance = client.player.getEyePos().distanceTo(speakerPos);
 					double gain = Math.max(0.35, 1.0 / (1.0 + (distance / 12.0)));
 						source.setGain((float) (gain * playbackVolume(speakerId) * (occluded ? 0.35 : 1.0)));
+					if (!readyToPlay(speakerId, buffer, now)) {
+						source.recycleProcessedBuffers();
+						continue;
+					}
 					VoiceFramePayload readyFrame;
 					while ((readyFrame = buffer.pollReady()) != null) {
+						lastPlayedNanos.put(speakerId, now);
 						boolean concealment = readyFrame.opusData().length == 0;
 						short[] pcm = codec.decode(concealment ? null : readyFrame.opusData(), concealment, decoderFor(speakerId));
 						pcm = processPlaybackAudio(speakerId, pcm);
@@ -489,7 +514,6 @@ public final class ClientVoiceManager implements AutoCloseable {
 				boolean groupVoice = lastGroupFrame != null && now - lastGroupFrame < GROUP_VOICE_WINDOW_NANOS;
 				SpatialAudioSource source;
 				if (groupVoice) {
-
 					source = spatialSources.computeIfAbsent(speakerId, id -> new SpatialAudioSource(id, config));
 					source.updatePosition(client.player, client.player.getEyePos(), false);
 					source.setGain(playbackVolume(speakerId));
@@ -504,8 +528,13 @@ public final class ClientVoiceManager implements AutoCloseable {
 					double gain = Math.max(0.35, 1.0 / (1.0 + (distance / 12.0)));
 					source.setGain((float) (gain * playbackVolume(speakerId) * (occluded ? 0.35 : 1.0)));
 				}
+				if (!readyToPlay(speakerId, buffer, now)) {
+					source.recycleProcessedBuffers();
+					continue;
+				}
 				VoiceFramePayload readyFrame;
 				while ((readyFrame = buffer.pollReady()) != null) {
+					lastPlayedNanos.put(speakerId, now);
 					boolean concealment = readyFrame.opusData().length == 0;
 					short[] pcm = codec.decode(concealment ? null : readyFrame.opusData(), concealment, decoderFor(speakerId));
 					pcm = processPlaybackAudio(speakerId, pcm);
@@ -568,6 +597,10 @@ public final class ClientVoiceManager implements AutoCloseable {
 
 	public boolean isTalking(UUID playerId) {
 		return talkingSources.contains(playerId);
+	}
+
+	public boolean isAnyoneTalking() {
+		return !talkingSources.isEmpty();
 	}
 
 	public boolean isSelfTalking() {

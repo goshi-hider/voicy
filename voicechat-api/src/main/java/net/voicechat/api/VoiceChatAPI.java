@@ -11,7 +11,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public interface VoiceChatAPI {
-
 	@Nullable
 	static VoiceChatAPI getInstance() {
 		return VoiceChatAPIHolder.get();

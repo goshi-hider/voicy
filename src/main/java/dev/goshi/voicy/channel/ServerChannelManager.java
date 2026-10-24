@@ -14,7 +14,6 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.function.BiConsumer;
 
 public final class ServerChannelManager implements ChannelManager {
-
 	private final Map<Identifier, VoiceChannelImpl> channels = new ConcurrentHashMap<>();
 	private final Map<UUID, Identifier> activeChannel = new ConcurrentHashMap<>();
 	private volatile BiConsumer<UUID, Identifier> activeChannelListener = (playerId, channelId) -> {};

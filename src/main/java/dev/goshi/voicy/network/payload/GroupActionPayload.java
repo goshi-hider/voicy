@@ -8,7 +8,6 @@ import net.minecraft.network.packet.CustomPayload;
 import java.util.UUID;
 
 public record GroupActionPayload(Action action, UUID id, String text, int number, boolean flag) implements CustomPayload {
-
 	public enum Action {
 		CREATE,
 		LEAVE,

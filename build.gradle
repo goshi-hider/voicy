@@ -25,6 +25,9 @@ dependencies {
 
 	implementation 'io.github.jaredmdobson:concentus:1.0.2'
 	include 'io.github.jaredmdobson:concentus:1.0.2'
+
+	implementation 'com.googlecode.soundlibs:jlayer:1.0.1.4'
+	include 'com.googlecode.soundlibs:jlayer:1.0.1.4'
 	testImplementation platform('org.junit:junit-bom:5.10.2')
 	testImplementation 'org.junit.jupiter:junit-jupiter'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
@@ -48,7 +51,6 @@ tasks.withType(Test).configureEach {
 }
 
 java {
-
 	withSourcesJar()
 
 	sourceCompatibility = JavaVersion.VERSION_21
@@ -72,6 +74,5 @@ publishing {
 	}
 
 	repositories {
-
 	}
 }

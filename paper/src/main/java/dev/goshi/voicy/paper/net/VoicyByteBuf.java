@@ -5,7 +5,6 @@ import java.util.Arrays;
 import java.util.UUID;
 
 public final class VoicyByteBuf {
-
 	private byte[] data;
 	private int writerIndex;
 	private int readerIndex;

@@ -15,7 +15,6 @@ public record VoiceFramePayload(
 		float distanceRadius,
 		byte[] opusData
 ) implements CustomPayload {
-
 	private static final PacketCodec<RegistryByteBuf, UUID> UUID_CODEC =
 			PacketCodecs.STRING.xmap(UUID::fromString, UUID::toString).cast();
 

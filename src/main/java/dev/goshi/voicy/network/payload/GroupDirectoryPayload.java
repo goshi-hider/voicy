@@ -10,12 +10,10 @@ import java.util.List;
 import java.util.UUID;
 
 public record GroupDirectoryPayload(List<GroupInfo> groups) implements CustomPayload {
-
 	public record Member(UUID id, String name, int color) {
 	}
 
 	public record GroupInfo(UUID id, String name, UUID owner, boolean isPublic, int maxPlayers, List<Member> members) {
-
 		public boolean isFull() {
 			return members.size() >= maxPlayers;
 		}

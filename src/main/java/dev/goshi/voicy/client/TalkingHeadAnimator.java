@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.UUID;
 
 public final class TalkingHeadAnimator {
-
 	private static final Map<UUID, State> STATES = new HashMap<>();
 	private static long lastPurgeMs;
 

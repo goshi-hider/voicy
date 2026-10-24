@@ -12,7 +12,6 @@ import net.minecraft.client.gui.widget.SliderWidget;
 import net.minecraft.text.Text;
 
 public final class VoiceControlScreen extends VoicyScreen {
-
 	private static final int PAGE_COUNT = 2;
 	private static int page = 0;
 
@@ -32,10 +31,13 @@ public final class VoiceControlScreen extends VoicyScreen {
 		addDrawableChild(ButtonWidget.builder(
 				pending > 0 ? Text.translatable("screen.voicy.groups_pending", pending) : Text.translatable("screen.voicy.groups"),
 				button -> MinecraftClient.getInstance().setScreen(new GroupScreen(this)))
-				.dimensions(cx - 14, 13, 68, 20).build());
+				.dimensions(cx - 22, 13, 60, 20).build());
 		addDrawableChild(ButtonWidget.builder(Text.translatable("screen.voicy.player_audio"),
 				button -> MinecraftClient.getInstance().setScreen(new PlayerAudioSettingsScreen(this)))
-				.dimensions(cx + 56, 13, 66, 20).build());
+				.dimensions(cx + 40, 13, 50, 20).build());
+		addDrawableChild(ButtonWidget.builder(Text.translatable("screen.voicy.music"),
+				button -> MinecraftClient.getInstance().setScreen(new MusicScreen(this)))
+				.dimensions(cx + 92, 13, 38, 20).build());
 
 		if (page == 0) {
 			initAudioPage(cx);
@@ -212,10 +214,10 @@ public final class VoiceControlScreen extends VoicyScreen {
 
 	@Override
 	protected void renderPanels(DrawContext context, int mouseX, int mouseY, float delta) {
-		context.fill(width / 2 - 124, 12, width / 2 + 124, 32, 0x66000000);
-		context.fill(width / 2 - 124, 12, width / 2 + 124, 13, 0xFF2A2A2A);
-		context.drawTexture(Voicy.id("textures/gui/voice_badge.png"), width / 2 - 116, 13, 0.0f, 0.0f, 20, 20, 128, 128);
-		context.drawTextWithShadow(textRenderer, title, width / 2 - 92, 18, 0xFFFFFFFF);
+		context.fill(width / 2 - 133, 12, width / 2 + 134, 32, 0x66000000);
+		context.fill(width / 2 - 133, 12, width / 2 + 134, 13, 0xFF2A2A2A);
+		context.drawTexture(Voicy.id("textures/gui/voice_badge.png"), width / 2 - 125, 13, 0.0f, 0.0f, 20, 20, 128, 128);
+		context.drawTextWithShadow(textRenderer, title, width / 2 - 101, 18, 0xFFFFFFFF);
 
 		int meterWidth = 16;
 		int meterHeight = 150;

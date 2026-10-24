@@ -5,7 +5,6 @@ import dev.goshi.voicy.paper.net.VoicyByteBuf;
 import java.util.UUID;
 
 public record GroupActionPayload(Action action, UUID id, String text, int number, boolean flag) {
-
 	public enum Action {
 		CREATE,
 		LEAVE,

@@ -1,6 +1,7 @@
 package dev.goshi.voicy.client;
 
-import dev.goshi.voicy.Voicy;
+import dev.goshi.voicy.client.music.MusicPlayer;
+import dev.goshi.voicy.config.VoicyConfig;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.option.KeyBinding;
@@ -8,11 +9,14 @@ import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
 
 public final class VoicyKeyBindings {
-
 	public static KeyBinding TOGGLE_MUTE;
 	public static KeyBinding TOGGLE_DEAFEN;
 	public static KeyBinding OPEN_GUI;
 	public static KeyBinding PUSH_TO_TALK;
+	public static KeyBinding MUSIC_TOGGLE;
+	public static KeyBinding MUSIC_NEXT;
+	public static KeyBinding MUSIC_PREVIOUS;
+	public static KeyBinding MUSIC_WIDGET;
 
 	private static ClientVoiceManager voiceManager;
 
@@ -50,6 +54,11 @@ public final class VoicyKeyBindings {
 				"key.category.voicy"
 		));
 
+		MUSIC_TOGGLE = unbound("key.voicy.music_toggle");
+		MUSIC_NEXT = unbound("key.voicy.music_next");
+		MUSIC_PREVIOUS = unbound("key.voicy.music_previous");
+		MUSIC_WIDGET = unbound("key.voicy.music_widget");
+
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			while (TOGGLE_MUTE.wasPressed()) {
 				voiceManager.setSelfMuted(!voiceManager.isSelfMuted());
@@ -60,8 +69,29 @@ public final class VoicyKeyBindings {
 			while (OPEN_GUI.wasPressed()) {
 				client.setScreen(new dev.goshi.voicy.client.gui.VoiceControlScreen(voiceManager));
 			}
+			while (MUSIC_TOGGLE.wasPressed()) {
+				MusicPlayer.INSTANCE.togglePause();
+			}
+			while (MUSIC_NEXT.wasPressed()) {
+				MusicPlayer.INSTANCE.next();
+			}
+			while (MUSIC_PREVIOUS.wasPressed()) {
+				MusicPlayer.INSTANCE.previous();
+			}
+			while (MUSIC_WIDGET.wasPressed()) {
+				VoicyConfig.INSTANCE.setMusicWidgetEnabled(!VoicyConfig.INSTANCE.musicWidgetEnabled());
+			}
 			voiceManager.setPushToTalkHeld(PUSH_TO_TALK.isPressed());
 			voiceManager.tick(client);
 		});
+	}
+
+	private static KeyBinding unbound(String translationKey) {
+		return KeyBindingHelper.registerKeyBinding(new KeyBinding(
+				translationKey,
+				InputUtil.Type.KEYSYM,
+				GLFW.GLFW_KEY_UNKNOWN,
+				"key.category.voicy"
+		));
 	}
 }

@@ -16,7 +16,6 @@ public record GroupStatePayload(
 		List<Request> requests,
 		List<Invitation> invitations
 ) implements CustomPayload {
-
 	public record Request(UUID player, String name) {
 	}
 

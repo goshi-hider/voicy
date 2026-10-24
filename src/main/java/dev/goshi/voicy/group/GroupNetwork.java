@@ -18,7 +18,6 @@ import java.util.Locale;
 import java.util.UUID;
 
 public final class GroupNetwork {
-
 	private final GroupManager manager;
 
 	public GroupNetwork(GroupManager manager) {

@@ -10,12 +10,13 @@ import java.io.Reader;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class VoicyConfig implements VoiceChatConfigView {
-
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
 	public static final float ACTIVATION_THRESHOLD_MIN = 0.01f;
@@ -39,6 +40,17 @@ public final class VoicyConfig implements VoiceChatConfigView {
 	private int maxOpusBitrate = 40000;
 	private int jitterBufferMs = 120;
 	private Map<UUID, Float> playerVolumes = new ConcurrentHashMap<>();
+	private MusicMode musicMode = MusicMode.LOCAL;
+	private float musicVolume = 0.6f;
+	private boolean musicShuffle = false;
+	private RepeatMode musicRepeat = RepeatMode.OFF;
+	private DuckPriority musicPriority = DuckPriority.PLAYERS;
+	private float musicDuckDepth = 0.7f;
+	private boolean musicWidgetEnabled = true;
+	private float musicWidgetX = 0.0f;
+	private float musicWidgetY = 0.0f;
+	private float musicWidgetScale = 1.0f;
+	private List<CustomStation> customStations = new ArrayList<>();
 
 	private VoicyConfig() {
 	}
@@ -56,7 +68,6 @@ public final class VoicyConfig implements VoiceChatConfigView {
 				}
 			}
 		} catch (Throwable ignored) {
-
 		}
 
 		config.activationThreshold = clampActivationThreshold(config.activationThreshold);
@@ -75,7 +86,6 @@ public final class VoicyConfig implements VoiceChatConfigView {
 				GSON.toJson(this, writer);
 			}
 		} catch (Throwable ignored) {
-
 		}
 	}
 
@@ -225,5 +235,113 @@ public final class VoicyConfig implements VoiceChatConfigView {
 
 	public int frameSizeSamples() {
 		return sampleRate * frameDurationMs / 1000;
+	}
+
+	public MusicMode musicMode() {
+		return musicMode == null ? MusicMode.LOCAL : musicMode;
+	}
+
+	public void setMusicMode(MusicMode musicMode) {
+		this.musicMode = musicMode;
+		save();
+	}
+
+	public float musicVolume() {
+		return Math.max(0.0f, Math.min(1.0f, musicVolume));
+	}
+
+	public void setMusicVolume(float musicVolume) {
+		this.musicVolume = Math.max(0.0f, Math.min(1.0f, musicVolume));
+		save();
+	}
+
+	public boolean musicShuffle() {
+		return musicShuffle;
+	}
+
+	public void setMusicShuffle(boolean musicShuffle) {
+		this.musicShuffle = musicShuffle;
+		save();
+	}
+
+	public RepeatMode musicRepeat() {
+		return musicRepeat == null ? RepeatMode.OFF : musicRepeat;
+	}
+
+	public void setMusicRepeat(RepeatMode musicRepeat) {
+		this.musicRepeat = musicRepeat;
+		save();
+	}
+
+	public DuckPriority musicPriority() {
+		return musicPriority == null ? DuckPriority.PLAYERS : musicPriority;
+	}
+
+	public void setMusicPriority(DuckPriority musicPriority) {
+		this.musicPriority = musicPriority;
+		save();
+	}
+
+	public float musicDuckDepth() {
+		return Math.max(0.0f, Math.min(1.0f, musicDuckDepth));
+	}
+
+	public void setMusicDuckDepth(float musicDuckDepth) {
+		this.musicDuckDepth = Math.max(0.0f, Math.min(1.0f, musicDuckDepth));
+		save();
+	}
+
+	public boolean musicWidgetEnabled() {
+		return musicWidgetEnabled;
+	}
+
+	public void setMusicWidgetEnabled(boolean musicWidgetEnabled) {
+		this.musicWidgetEnabled = musicWidgetEnabled;
+		save();
+	}
+
+	public float musicWidgetX() {
+		return Math.max(0.0f, Math.min(1.0f, musicWidgetX));
+	}
+
+	public float musicWidgetY() {
+		return Math.max(0.0f, Math.min(1.0f, musicWidgetY));
+	}
+
+	public void setMusicWidgetPosition(float x, float y) {
+		this.musicWidgetX = Math.max(0.0f, Math.min(1.0f, x));
+		this.musicWidgetY = Math.max(0.0f, Math.min(1.0f, y));
+		save();
+	}
+
+	public float musicWidgetScale() {
+		if (musicWidgetScale <= 0.0f) {
+			return 1.0f;
+		}
+		return Math.max(0.6f, Math.min(2.0f, musicWidgetScale));
+	}
+
+	public void setMusicWidgetScale(float scale) {
+		this.musicWidgetScale = Math.max(0.6f, Math.min(2.0f, scale));
+		save();
+	}
+
+	public List<CustomStation> customStations() {
+		if (customStations == null) {
+			customStations = new ArrayList<>();
+		}
+		return customStations;
+	}
+
+	public void addCustomStation(String name, String url) {
+		List<CustomStation> list = customStations();
+		list.removeIf(station -> station.url != null && station.url.equalsIgnoreCase(url));
+		list.add(new CustomStation(name, url));
+		save();
+	}
+
+	public void removeCustomStation(String url) {
+		customStations().removeIf(station -> station.url != null && station.url.equalsIgnoreCase(url));
+		save();
 	}
 }

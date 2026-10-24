@@ -10,7 +10,6 @@ public record ApiCommandPayload(
 		String sourceMod,
 		boolean enabled
 ) {
-
 	public enum ApiCommandType {
 		MUTE,
 		UNMUTE,

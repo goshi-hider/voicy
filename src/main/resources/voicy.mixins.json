@@ -8,6 +8,7 @@
 	},
 	"client": [
 		"PlayerEntityMixin",
-		"PlayerEntityModelMixin"
+		"PlayerEntityModelMixin",
+		"SoundSystemMixin"
 	]
 }

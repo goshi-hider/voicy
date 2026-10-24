@@ -19,7 +19,6 @@ import net.minecraft.util.Formatting;
 import java.util.UUID;
 
 public final class NameColorScreen extends VoicyScreen {
-
 	private static final int COLUMNS = 8;
 	private static final int SWATCH_W = 24;
 	private static final int SWATCH_H = 24;
@@ -79,7 +78,6 @@ public final class NameColorScreen extends VoicyScreen {
 	}
 
 	private static final class Swatch extends ClickableWidget {
-
 		private final int index;
 
 		Swatch(int x, int y, int index) {

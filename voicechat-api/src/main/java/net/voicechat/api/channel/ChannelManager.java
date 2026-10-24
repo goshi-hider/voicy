@@ -9,7 +9,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface ChannelManager {
-
 	@NotNull
 	VoiceChannel createChannel(@NotNull Identifier channelId, @NotNull ChannelType type, @NotNull ChannelSettings settings);
 

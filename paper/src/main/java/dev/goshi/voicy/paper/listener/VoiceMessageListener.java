@@ -12,7 +12,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 
 public final class VoiceMessageListener implements PluginMessageListener {
-
 	private final VoicyPaperPlugin plugin;
 
 	public VoiceMessageListener(VoicyPaperPlugin plugin) {

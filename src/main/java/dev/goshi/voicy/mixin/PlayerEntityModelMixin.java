@@ -17,7 +17,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(PlayerEntityModel.class)
 public abstract class PlayerEntityModelMixin {
-
 	@Inject(method = "setAngles(Lnet/minecraft/entity/LivingEntity;FFFFF)V", at = @At("TAIL"))
 	private void voicy$talkingHead(LivingEntity entity, float limbAngle, float limbDistance, float animationProgress,
 			float headYaw, float headPitch, CallbackInfo ci) {

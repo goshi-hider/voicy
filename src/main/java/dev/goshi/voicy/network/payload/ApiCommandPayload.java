@@ -15,7 +15,6 @@ public record ApiCommandPayload(
 		Identifier sourceMod,
 		boolean enabled
 ) implements CustomPayload {
-
 	private static final PacketCodec<RegistryByteBuf, UUID> UUID_CODEC =
 			PacketCodecs.STRING.xmap(UUID::fromString, UUID::toString).cast();
 

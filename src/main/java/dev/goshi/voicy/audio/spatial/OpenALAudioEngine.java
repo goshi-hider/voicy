@@ -9,7 +9,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 public final class OpenALAudioEngine implements AutoCloseable {
-
 	private final int format;
 	private final int sampleRate;
 
@@ -59,6 +58,5 @@ public final class OpenALAudioEngine implements AutoCloseable {
 
 	@Override
 	public void close() {
-
 	}
 }

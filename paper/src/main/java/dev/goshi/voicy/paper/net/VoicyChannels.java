@@ -1,7 +1,6 @@
 package dev.goshi.voicy.paper.net;
 
 public final class VoicyChannels {
-
 	public static final String VOICE_FRAME = "voicy:voice_frame";
 	public static final String API_COMMAND = "voicy:api_command";
 	public static final String STATE_SYNC = "voicy:state_sync";

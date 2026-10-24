@@ -14,7 +14,6 @@ import net.minecraft.text.Text;
 import java.util.UUID;
 
 public final class CreateGroupScreen extends VoicyScreen {
-
 	private final Screen parent;
 	private TextFieldWidget nameField;
 	private ButtonWidget createButton;

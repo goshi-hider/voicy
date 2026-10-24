@@ -19,7 +19,6 @@ import org.joml.Matrix4f;
 
 public final class TalkingSplitHeadFeatureRenderer
 		extends FeatureRenderer<AbstractClientPlayerEntity, PlayerEntityModel<AbstractClientPlayerEntity>> {
-
 	private static final float TEX = 64f;
 
 	public TalkingSplitHeadFeatureRenderer(

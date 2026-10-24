@@ -13,7 +13,6 @@ public record GroupStatePayload(
 		List<Request> requests,
 		List<Invitation> invitations
 ) {
-
 	public record Request(UUID player, String name) {
 	}
 

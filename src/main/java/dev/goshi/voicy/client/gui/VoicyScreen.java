@@ -5,7 +5,6 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 
 public abstract class VoicyScreen extends Screen {
-
 	private static final int DIM_COLOR = 0x90101010;
 
 	private boolean backgroundDone;
@@ -20,7 +19,7 @@ public abstract class VoicyScreen extends Screen {
 			return;
 		}
 
-		context.fill(0, 0, this.width, this.height, DIM_COLOR);
+		context.fill(0, 0, this.width, this.height, dimColor());
 	}
 
 	@Override
@@ -34,6 +33,10 @@ public abstract class VoicyScreen extends Screen {
 		} finally {
 			backgroundDone = false;
 		}
+	}
+
+	protected int dimColor() {
+		return DIM_COLOR;
 	}
 
 	protected void renderPanels(DrawContext context, int mouseX, int mouseY, float delta) {

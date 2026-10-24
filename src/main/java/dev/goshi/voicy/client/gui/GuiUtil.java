@@ -14,7 +14,6 @@ import net.minecraft.util.Formatting;
 import java.util.UUID;
 
 final class GuiUtil {
-
 	private GuiUtil() {
 	}
 

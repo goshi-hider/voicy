@@ -7,7 +7,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.UUID;
 
 public interface VolumeManager {
-
 	float getPlayerVolume(@NotNull UUID playerId);
 
 	void setPlayerVolume(@NotNull UUID playerId, float volume);
@@ -27,7 +26,6 @@ public interface VolumeManager {
 	void unregisterFilter(@NotNull AudioFilterHandle handle);
 
 	interface AudioFilter {
-
 		short[] process(@NotNull short[] pcm, int sampleRate, @NotNull UUID speakerId);
 	}
 

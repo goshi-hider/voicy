@@ -4,7 +4,6 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.Plugin;
 
 public final class PaperVoicyConfig {
-
 	public static final int DEFAULT_UDP_PORT = 25555;
 
 	private final double proximityRadius;

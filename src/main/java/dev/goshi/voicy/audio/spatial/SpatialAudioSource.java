@@ -14,7 +14,6 @@ import java.util.Deque;
 import java.util.UUID;
 
 public final class SpatialAudioSource implements AutoCloseable {
-
 	private final int source;
 	private final UUID ownerId;
 	private final VoicyConfig config;

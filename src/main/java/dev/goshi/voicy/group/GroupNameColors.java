@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.UUID;
 
 public final class GroupNameColors {
-
 	private static volatile Map<UUID, Formatting> colors = Map.of();
 
 	private GroupNameColors() {

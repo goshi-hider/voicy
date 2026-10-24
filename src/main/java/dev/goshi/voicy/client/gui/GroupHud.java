@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.UUID;
 
 public final class GroupHud {
-
 	private static final int HEAD = 16;
 	private static final int OUTLINE = 2;
 	private static final int GAP = 4;

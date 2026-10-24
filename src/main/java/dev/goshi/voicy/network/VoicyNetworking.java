@@ -13,7 +13,6 @@ import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.minecraft.util.Identifier;
 
 public final class VoicyNetworking {
-
 	public static final Identifier VOICE_FRAME = Voicy.id("voice_frame");
 	public static final Identifier API_COMMAND = Voicy.id("api_command");
 	public static final Identifier STATE_SYNC = Voicy.id("state_sync");

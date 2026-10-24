@@ -22,7 +22,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 public final class VoiceRouter {
-
 	public static final float GROUP_FRAME_RADIUS = -1.0f;
 
 	private final Plugin plugin;

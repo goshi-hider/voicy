@@ -19,7 +19,6 @@ import java.util.Map;
 import java.util.UUID;
 
 public final class SpeakerManager {
-
 	private static final long SPEAKER_MAGIC = 0x564F4953564F4E45L;
 
 	private final Plugin plugin;
@@ -166,7 +165,6 @@ public final class SpeakerManager {
 					speakers.put(id, new SpeakerEntry(id, world, x, y, z));
 				}
 			} catch (NumberFormatException ignored) {
-
 			}
 		}
 	}
