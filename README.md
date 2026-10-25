@@ -1,6 +1,6 @@
 # Voicy
 
-Fabric 1.21 proximity voice chat with spatial speaker relays and a small third-party API.
+Fabric 1.21.x proximity voice chat with spatial speaker relays and a small third-party API.
 
 ## Build
 
