@@ -1,10 +1,10 @@
 # Voicy
 
-Fabric 1.21.x proximity voice chat with spatial speaker relays and a small third-party API.
+Fabric 1.21.x and 26.3 proximity voice chat with spatial speaker relays and a small third-party API.
 
 ## Build
 
-Requires Java 21.
+Requires Java 21 or Java 25.
 
 ```powershell
 .\gradlew.bat test
